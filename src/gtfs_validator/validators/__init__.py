@@ -62,6 +62,9 @@ from gtfs_validator.validators.inconsistent_route_type_for_in_seat_transfer impo
     validate_inconsistent_route_type_for_in_seat_transfer,
 )
 from gtfs_validator.validators.transfer_distance import validate_transfer_distance
+from gtfs_validator.validators.transfer_stop_ids_conditional import (
+    validate_transfer_stop_ids_conditional,
+)
 from gtfs_validator.validators.location_has_stop_times import (
     validate_location_has_stop_times,
 )
@@ -311,6 +314,11 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="transfer_distance",
         fn=validate_transfer_distance,
         requires=["transfers", "stops"],
+    ),
+    ValidatorEntry(
+        name="transfer_stop_ids_conditional",
+        fn=validate_transfer_stop_ids_conditional,
+        requires=["transfers"],
     ),
     ValidatorEntry(
         name="location_has_stop_times",

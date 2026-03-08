@@ -74,7 +74,7 @@
 70. ~~TimeframeStartAndEndTimeValidator~~ ✅
 71. ~~TimepointTimeValidator~~ ✅
 72. ~~TransferDistanceValidator~~ ✅
-73. TransferStopIdsConditionalValidator
+73. ~~TransferStopIdsConditionalValidator~~ ✅
 74. TransfersInSeatTransferTypeValidator
 75. TransfersStopTypeValidator
 76. TransfersTripReferenceValidator
