@@ -30,11 +30,17 @@ class ValidatorEntry:
 # Order matters — validators run in registry order.
 
 from gtfs_validator.validators.agency_consistency import validate_agency_consistency
+from gtfs_validator.validators.attribution import validate_attribution_without_role
 
 VALIDATOR_REGISTRY: list[ValidatorEntry] = [
     ValidatorEntry(
         name="agency_consistency",
         fn=validate_agency_consistency,
         requires=["agency"],
+    ),
+    ValidatorEntry(
+        name="attribution_without_role",
+        fn=validate_attribution_without_role,
+        requires=["attributions"],
     ),
 ]

@@ -3,7 +3,7 @@
 82 validators to migrate from Java to Python/Polars.
 
 1. ~~AgencyConsistencyValidator~~ ✅
-2. AttributionWithoutRoleValidator
+2. ~~AttributionWithoutRoleValidator~~ ✅
 3. BidirectionalExitGateValidator
 4. BikesAllowanceValidator
 5. BlockTripsWithOverlappingStopTimesValidator
