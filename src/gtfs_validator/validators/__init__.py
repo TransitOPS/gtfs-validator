@@ -115,6 +115,7 @@ from gtfs_validator.validators.pathways import validate_bidirectional_exit_gate
 from gtfs_validator.validators.trip_service_id_foreign_key_validator import (
     validate_trip_service_id_foreign_key,
 )
+from gtfs_validator.validators.route_color_contrast import validate_route_color_contrast
 from gtfs_validator.validators.trip_usage import validate_trip_usage
 
 VALIDATOR_REGISTRY: list[ValidatorEntry] = [
@@ -362,5 +363,10 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="pathway_stop_access",
         fn=validate_pathway_stop_access,
         requires=["stops", "pathways"],
+    ),
+    ValidatorEntry(
+        name="route_color_contrast",
+        fn=validate_route_color_contrast,
+        requires=["routes"],
     ),
 ]

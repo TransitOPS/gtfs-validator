@@ -50,7 +50,7 @@
 46. ~~PickupDropOffTypeValidator~~ ✅
 47. ~~PickupDropOffWindowValidator~~ ✅
 48. ~~RouteAgencyIdValidator~~ ✅
-49. RouteColorContrastValidator
+49. ~~RouteColorContrastValidator~~ ✅
 50. RouteNameValidator
 51. ServiceGapValidator
 52. ServiceHasNoActiveDayOfTheWeekValidator
