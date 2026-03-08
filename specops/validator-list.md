@@ -16,7 +16,7 @@
 12. ~~FareAttributeAgencyIdValidator~~ ✅
 13. ~~FareLegJoinRuleValidator~~ ✅
 14. ~~FareMediaNameValidator~~ ✅
-15. FareProductDefaultRiderCategoriesValidator
+15. ~~FareProductDefaultRiderCategoriesValidator~~ ✅
 16. FareTransferRuleDurationLimitTypeValidator
 17. FareTransferRuleTransferCountValidator
 18. FeedContactValidator
