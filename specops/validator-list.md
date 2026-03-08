@@ -81,6 +81,6 @@
 77. ~~TranslationFieldAndReferenceValidator~~ ✅
 78. ~~TripAndShapeDistanceValidator~~ ✅
 79. ~~TripUsabilityValidator~~ ✅
-80. TripUsageValidator
+80. ~~TripUsageValidator~~ ✅
 81. UniqueGeographyIdValidator
 82. UrlConsistencyValidator
