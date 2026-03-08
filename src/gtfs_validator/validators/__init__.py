@@ -33,6 +33,7 @@ from gtfs_validator.validators.agency_consistency import validate_agency_consist
 from gtfs_validator.validators.attribution import validate_attribution_without_role
 from gtfs_validator.validators.bikes_allowance import validate_bikes_allowance
 from gtfs_validator.validators.block_trips_overlapping import validate_block_trips_overlapping
+from gtfs_validator.validators.booking_rules_entity import validate_booking_rules_entity
 from gtfs_validator.validators.pathways import validate_bidirectional_exit_gate
 
 VALIDATOR_REGISTRY: list[ValidatorEntry] = [
@@ -60,5 +61,10 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="bikes_allowance",
         fn=validate_bikes_allowance,
         requires=["routes", "trips"],
+    ),
+    ValidatorEntry(
+        name="booking_rules_entity",
+        fn=validate_booking_rules_entity,
+        requires=["booking_rules"],
     ),
 ]

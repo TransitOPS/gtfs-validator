@@ -7,7 +7,7 @@
 3. ~~BidirectionalExitGateValidator~~ ✅
 4. ~~BikesAllowanceValidator~~ ✅
 5. ~~BlockTripsWithOverlappingStopTimesValidator~~ ✅
-6. BookingRulesEntityValidator
+6. ~~BookingRulesEntityValidator~~ ✅
 7. ContinuousPickupDropOffValidator
 8. DateTripsValidator
 9. DuplicateFareMediaValidator
