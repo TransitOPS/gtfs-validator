@@ -77,6 +77,7 @@ from gtfs_validator.validators.missing_calendar_and_calendar_date import (
     validate_missing_calendar_and_calendar_date,
 )
 from gtfs_validator.validators.missing_feed_info import validate_missing_feed_info
+from gtfs_validator.validators.missing_stops_file import validate_missing_stops_file
 from gtfs_validator.validators.missing_level_id import validate_missing_level_id
 from gtfs_validator.validators.geojson_geometry import validate_geojson_geometry
 from gtfs_validator.validators.feed_expiration_date import validate_feed_expiration_date
@@ -252,6 +253,11 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
     ValidatorEntry(
         name="missing_feed_info",
         fn=validate_missing_feed_info,
+        requires=[],
+    ),
+    ValidatorEntry(
+        name="missing_stops_file",
+        fn=validate_missing_stops_file,
         requires=[],
     ),
     ValidatorEntry(
