@@ -38,7 +38,7 @@ def test_expiring_in_6_days_emits_7_day_notice() -> None:
 
     assert len(notices) == 1
     n = notices[0]
-    assert n.code == "feed_expiration_date_7_days"
+    assert n.code == "feed_expiration_date7_days"
     assert n.severity == Severity.WARNING
     assert n.fields["csv_row_number"] == 1
     assert n.fields["current_date"] == "20210125"
@@ -53,7 +53,7 @@ def test_expiring_in_7_days_emits_30_day_notice() -> None:
 
     assert len(notices) == 1
     n = notices[0]
-    assert n.code == "feed_expiration_date_30_days"
+    assert n.code == "feed_expiration_date30_days"
     assert n.severity == Severity.WARNING
     assert n.fields["csv_row_number"] == 1
     assert n.fields["current_date"] == "20210125"
@@ -67,7 +67,7 @@ def test_expiring_in_29_days_emits_30_day_notice() -> None:
 
     assert len(notices) == 1
     n = notices[0]
-    assert n.code == "feed_expiration_date_30_days"
+    assert n.code == "feed_expiration_date30_days"
     assert n.fields["suggested_expiration_date"] == "20210224"
 
 
@@ -85,7 +85,7 @@ def test_expiring_in_past_emits_7_day_notice() -> None:
 
     assert len(notices) == 1
     n = notices[0]
-    assert n.code == "feed_expiration_date_7_days"
+    assert n.code == "feed_expiration_date7_days"
     assert n.fields["feed_end_date"] == "20210124"
     assert n.fields["suggested_expiration_date"] == "20210201"
 
@@ -122,7 +122,7 @@ def test_expiring_exactly_today_emits_7_day_notice() -> None:
     notices = validate_feed_expiration_date(feed, CTX)
 
     assert len(notices) == 1
-    assert notices[0].code == "feed_expiration_date_7_days"
+    assert notices[0].code == "feed_expiration_date7_days"
 
 
 def test_far_future_emits_no_notice() -> None:
@@ -136,7 +136,7 @@ def test_past_by_many_days_emits_7_day_notice() -> None:
     notices = validate_feed_expiration_date(feed, CTX)
 
     assert len(notices) == 1
-    assert notices[0].code == "feed_expiration_date_7_days"
+    assert notices[0].code == "feed_expiration_date7_days"
 
 
 def test_only_one_notice_per_row() -> None:
@@ -146,7 +146,7 @@ def test_only_one_notice_per_row() -> None:
 
     assert len(notices) == 1
     codes = [n.code for n in notices]
-    assert "feed_expiration_date_30_days" not in codes
+    assert "feed_expiration_date30_days" not in codes
 
 
 def test_notice_fields_are_complete() -> None:
@@ -165,5 +165,5 @@ def test_month_boundary_arithmetic_7_days() -> None:
 
     assert len(notices) == 1
     n = notices[0]
-    assert n.code == "feed_expiration_date_30_days"
+    assert n.code == "feed_expiration_date30_days"
     assert n.fields["suggested_expiration_date"] == "20210224"

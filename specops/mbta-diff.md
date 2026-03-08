@@ -11,7 +11,7 @@
 11. `summary.agencies` content differs: old includes extra keys (`email`, `timezone`), new includes only `name`, `url`, `phone` for this feed. ✅
 12. `summary.files` differs in composition: old includes unknown extension files from the feed (e.g., `calendar_attributes.txt`, `route_patterns.txt`), new includes extensionless aliases plus `.txt` keys (e.g., both `calendar` and `calendar.txt`), increasing file entries from 32 (old) to 40 (new). ✅
 13. Feature naming mismatch exists: old includes `In-station Traversal Time`, new includes `Traversal Time` (same concept, different label). ✅
-14. Notice code naming mismatch exists for feed expiration: old emits `feed_expiration_date30_days`, new emits `feed_expiration_date_30_days` (underscore insertion).
+14. Notice code naming mismatch exists for feed expiration: old emits `feed_expiration_date30_days`, new emits `feed_expiration_date_30_days` (underscore insertion). ✅
 15. Notice code count mismatch exists for `stop_too_far_from_shape`: old = 13, new = 12.
 16. Notice groups present only in old: `feed_expiration_date30_days` (1) and old-count version of `stop_too_far_from_shape` (13).
 17. Notice groups present only in new: `big_gap_in_service` (5), `feed_expiration_date_30_days` (1), `leading_or_trailing_whitespaces` (3), `mixed_case_recommended_field` (4), `service_has_no_active_day_of_the_week` (1), and new-count version of `stop_too_far_from_shape` (12).

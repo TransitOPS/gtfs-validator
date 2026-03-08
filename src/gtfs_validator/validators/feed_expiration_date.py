@@ -17,8 +17,8 @@ def validate_feed_expiration_date(
 ) -> list[Notice]:
     """Emit warnings when feed_end_date is near or past expiration.
 
-    Emits ``feed_expiration_date_7_days`` when the feed expires in fewer
-    than 7 days (or has already expired), and ``feed_expiration_date_30_days``
+    Emits ``feed_expiration_date7_days`` when the feed expires in fewer
+    than 7 days (or has already expired), and ``feed_expiration_date30_days``
     when it expires in 7–29 days inclusive.  The two notices are mutually
     exclusive per row.
     """
@@ -44,7 +44,7 @@ def validate_feed_expiration_date(
         if end_date < plus_7:
             notices.append(
                 Notice(
-                    code="feed_expiration_date_7_days",
+                    code="feed_expiration_date7_days",
                     severity=Severity.WARNING,
                     fields={
                         "csv_row_number": row_number,
@@ -59,7 +59,7 @@ def validate_feed_expiration_date(
         if end_date < plus_30:
             notices.append(
                 Notice(
-                    code="feed_expiration_date_30_days",
+                    code="feed_expiration_date30_days",
                     severity=Severity.WARNING,
                     fields={
                         "csv_row_number": row_number,
