@@ -174,6 +174,9 @@ from gtfs_validator.validators.timepoint_time import validate_timepoint_time
 from gtfs_validator.validators.translation_field_and_reference import (
     validate_translation_field_and_reference,
 )
+from gtfs_validator.validators.trip_and_shape_distance import (
+    validate_trip_and_shape_distance,
+)
 from gtfs_validator.validators.trip_usage import validate_trip_usage
 
 VALIDATOR_REGISTRY: list[ValidatorEntry] = [
@@ -221,6 +224,11 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="trip_usage",
         fn=validate_trip_usage,
         requires=["trips", "stop_times"],
+    ),
+    ValidatorEntry(
+        name="trip_and_shape_distance",
+        fn=validate_trip_and_shape_distance,
+        requires=["trips", "stop_times", "stops", "shapes"],
     ),
     ValidatorEntry(
         name="duplicate_fare_media",
