@@ -14,7 +14,7 @@
 10. ~~DuplicateRouteNameValidator~~ ✅
 11. ~~ExpiredCalendarValidator~~ ✅
 12. ~~FareAttributeAgencyIdValidator~~ ✅
-13. FareLegJoinRuleValidator
+13. ~~FareLegJoinRuleValidator~~ ✅
 14. FareMediaNameValidator
 15. FareProductDefaultRiderCategoriesValidator
 16. FareTransferRuleDurationLimitTypeValidator
