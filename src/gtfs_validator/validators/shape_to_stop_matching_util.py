@@ -606,8 +606,10 @@ def match_using_geo_distance(
     """Geo-distance matching: find candidates, assign, detect issues."""
     problems: list[Problem] = []
     candidates_per_stop: list[list[CandidateMatch]] = []
+    # Maps index in candidates_per_stop -> index in stop_points (skips too-far stops)
+    candidate_stop_idx: list[int] = []
 
-    for stop in stop_points:
+    for orig_idx, stop in enumerate(stop_points):
         max_dist = settings.max_distance_meters
         if stop.is_large_station:
             max_dist *= settings.large_station_multiplier
@@ -639,17 +641,18 @@ def match_using_geo_distance(
                     },
                 )
             )
-            # Abort trip matching
-            return problems
+            # Do not add this stop to candidates_per_stop; continue checking remaining stops.
+            continue
 
         candidates_per_stop.append(candidates)
+        candidate_stop_idx.append(orig_idx)
 
     assignment, out_of_order = find_best_assignment(candidates_per_stop, stop_points)
 
-    for stop_idx, match1, match2 in out_of_order:
-        stop1 = stop_points[stop_idx]
-        # stop2 is the previous stop (stop_idx - 1)
-        stop2 = stop_points[stop_idx - 1]
+    for cand_idx, match1, match2 in out_of_order:
+        # cand_idx and cand_idx-1 are indices into candidates_per_stop; map back to stop_points
+        stop1 = stop_points[candidate_stop_idx[cand_idx]]
+        stop2 = stop_points[candidate_stop_idx[cand_idx - 1]]
         problems.append(
             Problem(
                 kind="out_of_order",
