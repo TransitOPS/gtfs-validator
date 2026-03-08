@@ -3,9 +3,119 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
+
+# Minimal BCP-47 / ISO 639-1 to English display name mapping.
+_LANG_CODE_TO_ENGLISH: dict[str, str] = {
+    "aa": "Afar",
+    "ab": "Abkhazian",
+    "af": "Afrikaans",
+    "am": "Amharic",
+    "ar": "Arabic",
+    "as": "Assamese",
+    "az": "Azerbaijani",
+    "be": "Belarusian",
+    "bg": "Bulgarian",
+    "bn": "Bengali",
+    "bs": "Bosnian",
+    "ca": "Catalan",
+    "cs": "Czech",
+    "cy": "Welsh",
+    "da": "Danish",
+    "de": "German",
+    "el": "Greek",
+    "en": "English",
+    "eo": "Esperanto",
+    "es": "Spanish",
+    "et": "Estonian",
+    "eu": "Basque",
+    "fa": "Persian",
+    "fi": "Finnish",
+    "fil": "Filipino",
+    "fr": "French",
+    "ga": "Irish",
+    "gl": "Galician",
+    "gu": "Gujarati",
+    "he": "Hebrew",
+    "hi": "Hindi",
+    "hr": "Croatian",
+    "hu": "Hungarian",
+    "hy": "Armenian",
+    "id": "Indonesian",
+    "is": "Icelandic",
+    "it": "Italian",
+    "ja": "Japanese",
+    "ka": "Georgian",
+    "kk": "Kazakh",
+    "km": "Khmer",
+    "kn": "Kannada",
+    "ko": "Korean",
+    "lt": "Lithuanian",
+    "lv": "Latvian",
+    "mk": "Macedonian",
+    "ml": "Malayalam",
+    "mn": "Mongolian",
+    "mr": "Marathi",
+    "ms": "Malay",
+    "mt": "Maltese",
+    "my": "Burmese",
+    "ne": "Nepali",
+    "nl": "Dutch",
+    "no": "Norwegian",
+    "pa": "Punjabi",
+    "pl": "Polish",
+    "ps": "Pashto",
+    "pt": "Portuguese",
+    "ro": "Romanian",
+    "ru": "Russian",
+    "si": "Sinhala",
+    "sk": "Slovak",
+    "sl": "Slovenian",
+    "so": "Somali",
+    "sq": "Albanian",
+    "sr": "Serbian",
+    "sv": "Swedish",
+    "sw": "Swahili",
+    "ta": "Tamil",
+    "te": "Telugu",
+    "th": "Thai",
+    "tl": "Filipino",
+    "tr": "Turkish",
+    "uk": "Ukrainian",
+    "ur": "Urdu",
+    "uz": "Uzbek",
+    "vi": "Vietnamese",
+    "zh": "Chinese",
+    "zu": "Zulu",
+}
+
+
+def _lang_to_display_name(tag: str | None) -> str | None:
+    """Convert a BCP-47 language tag to an English display name.
+
+    Uses the primary language subtag (before any '-') for lookup.
+    Returns the tag unchanged if not found in the mapping.
+    """
+    if tag is None:
+        return None
+    primary = tag.split("-")[0].lower()
+    return _LANG_CODE_TO_ENGLISH.get(primary, tag)
+
+
+def _yyyymmdd_to_iso(value: str | None) -> str | None:
+    """Convert a YYYYMMDD string to ISO 8601 (YYYY-MM-DD).
+
+    Returns the value unchanged if it is not exactly 8 digits.
+    """
+    if value is None:
+        return None
+    if re.fullmatch(r"\d{8}", str(value)):
+        s = str(value)
+        return f"{s[:4]}-{s[4:6]}-{s[6:]}"
+    return value
 
 
 def _to_file_uri(source: str) -> str:
@@ -92,9 +202,9 @@ def _build_validation_report(
             k: v for k, v in {
                 "publisherName": row.get("feed_publisher_name"),
                 "publisherUrl": row.get("feed_publisher_url"),
-                "feedLanguage": row.get("feed_lang"),
-                "feedStartDate": row.get("feed_start_date"),
-                "feedEndDate": row.get("feed_end_date"),
+                "feedLanguage": _lang_to_display_name(row.get("feed_lang")),
+                "feedStartDate": _yyyymmdd_to_iso(row.get("feed_start_date")),
+                "feedEndDate": _yyyymmdd_to_iso(row.get("feed_end_date")),
             }.items() if v is not None
         }
 
