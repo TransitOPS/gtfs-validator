@@ -55,6 +55,9 @@ from gtfs_validator.validators.fare_leg_rule_network_id_foreign_key import (
     validate_fare_leg_rule_network_id_foreign_key,
 )
 from gtfs_validator.validators.feed_contact import validate_feed_contact
+from gtfs_validator.validators.inconsistent_route_type_for_block_id import (
+    validate_inconsistent_route_type_for_block_id,
+)
 from gtfs_validator.validators.geojson_geometry import validate_geojson_geometry
 from gtfs_validator.validators.feed_expiration_date import validate_feed_expiration_date
 from gtfs_validator.validators.feed_service_date import validate_feed_service_date
@@ -190,5 +193,10 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="trip_service_id_foreign_key",
         fn=validate_trip_service_id_foreign_key,
         requires=["trips"],
+    ),
+    ValidatorEntry(
+        name="inconsistent_route_type_for_block_id",
+        fn=validate_inconsistent_route_type_for_block_id,
+        requires=["trips", "routes"],
     ),
 ]
