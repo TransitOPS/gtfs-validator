@@ -51,6 +51,7 @@ from gtfs_validator.validators.fare_transfer_rule_transfer_count import (
 from gtfs_validator.validators.fare_product_default_rider_categories import (
     validate_fare_product_default_rider_categories,
 )
+from gtfs_validator.validators.feed_contact import validate_feed_contact
 from gtfs_validator.validators.pathways import validate_bidirectional_exit_gate
 
 VALIDATOR_REGISTRY: list[ValidatorEntry] = [
@@ -138,5 +139,10 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="fare_transfer_rule_transfer_count",
         fn=validate_fare_transfer_rule_transfer_count,
         requires=["fare_transfer_rules"],
+    ),
+    ValidatorEntry(
+        name="feed_contact",
+        fn=validate_feed_contact,
+        requires=["feed_info"],
     ),
 ]

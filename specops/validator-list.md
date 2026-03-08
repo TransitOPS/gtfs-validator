@@ -19,7 +19,7 @@
 15. ~~FareProductDefaultRiderCategoriesValidator~~ ✅
 16. ~~FareTransferRuleDurationLimitTypeValidator~~ ✅
 17. ~~FareTransferRuleTransferCountValidator~~ ✅
-18. FeedContactValidator
+18. ~~FeedContactValidator~~ ✅
 19. FeedExpirationDateValidator
 20. FeedServiceDateValidator
 21. FeedValidTodayValidator
