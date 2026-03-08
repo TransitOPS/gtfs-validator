@@ -31,7 +31,7 @@
 27. ~~LocationHasStopTimesValidator~~ ✅
 28. ~~LocationIdForeignKeyValidator~~ ✅
 29. ~~LocationTypeSingleEntityValidator~~ ✅
-30. MatchingFeedAndAgencyLangValidator
+30. ~~MatchingFeedAndAgencyLangValidator~~ ✅
 31. MissingCalendarAndCalendarDateValidator
 32. MissingFeedInfoValidator
 33. MissingLevelIdValidator

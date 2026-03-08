@@ -70,6 +70,9 @@ from gtfs_validator.validators.location_type_single_entity import (
 from gtfs_validator.validators.location_id_foreign_key import (
     validate_location_id_foreign_key,
 )
+from gtfs_validator.validators.matching_feed_and_agency_lang import (
+    validate_matching_feed_and_agency_lang,
+)
 from gtfs_validator.validators.geojson_geometry import validate_geojson_geometry
 from gtfs_validator.validators.feed_expiration_date import validate_feed_expiration_date
 from gtfs_validator.validators.feed_service_date import validate_feed_service_date
@@ -230,5 +233,10 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="location_type_single_entity",
         fn=validate_location_type_single_entity,
         requires=["stops"],
+    ),
+    ValidatorEntry(
+        name="matching_feed_and_agency_lang",
+        fn=validate_matching_feed_and_agency_lang,
+        requires=["feed_info", "agency"],
     ),
 ]
