@@ -34,8 +34,8 @@ def build_service_date_map(
 
         for row in calendar.iter_rows(named=True):
             service_id = row["service_id"]
-            start = row["start_date"]
-            end = row["end_date"]
+            start = _to_date(row["start_date"])
+            end = _to_date(row["end_date"])
             if start is None or end is None:
                 continue
 
@@ -57,8 +57,8 @@ def build_service_date_map(
     if "calendar_dates" in feed and not feed["calendar_dates"].is_empty():
         for row in feed["calendar_dates"].iter_rows(named=True):
             service_id = row["service_id"]
-            d = row["date"]
-            exc_type = row["exception_type"]
+            d = _to_date(row["date"])
+            exc_type = _to_int(row["exception_type"])
             if d is None or exc_type is None:
                 continue
 
@@ -71,6 +71,30 @@ def build_service_date_map(
                 result[service_id].discard(d)
 
     return result
+
+
+def _to_date(value: object) -> date | None:
+    """Parse GTFS date values from either date objects or YYYYMMDD strings."""
+    if isinstance(value, date):
+        return value
+    if isinstance(value, str) and len(value) == 8 and value.isdigit():
+        try:
+            return date(int(value[0:4]), int(value[4:6]), int(value[6:8]))
+        except ValueError:
+            return None
+    return None
+
+
+def _to_int(value: object) -> int | None:
+    """Parse integer-like values used in CSV-backed GTFS tables."""
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        try:
+            return int(value)
+        except ValueError:
+            return None
+    return None
 
 
 class ServiceIdIntersectionCache:

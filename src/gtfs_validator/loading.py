@@ -76,18 +76,28 @@ def load_feed(
             )
             feed[table_def.filename] = df
             statuses[table_def.filename] = status
+            # Compatibility alias for validator code that uses logical table keys
+            # (e.g. "calendar") rather than file names ("calendar.txt").
+            if present:
+                table_key = _table_key_from_filename(table_def.filename)
+                feed[table_key] = df
+                statuses[table_key] = status
             notices.add_all(table_notices)
     else:
         with ThreadPoolExecutor(max_workers=num_threads) as pool:
             futures = {
-                pool.submit(_load_one, gtfs_input, td, p): td
+                pool.submit(_load_one, gtfs_input, td, p): (td, p)
                 for td, p in tables_to_load
             }
             for fut in as_completed(futures):
-                td = futures[fut]
+                td, present = futures[fut]
                 df, status, table_notices = fut.result()
                 feed[td.filename] = df
                 statuses[td.filename] = status
+                if present:
+                    table_key = _table_key_from_filename(td.filename)
+                    feed[table_key] = df
+                    statuses[table_key] = status
                 notices.add_all(table_notices)
 
     return feed, statuses, notices
@@ -145,6 +155,11 @@ def _empty_df(table_def: TableDefinition) -> pl.DataFrame:
     return pl.DataFrame(
         {col.name: pl.Series(col.name, [], dtype=pl.Utf8) for col in table_def.columns}
     )
+
+
+def _table_key_from_filename(filename: str) -> str:
+    """Return logical table key from GTFS filename (e.g. stops.txt -> stops)."""
+    return filename[:-4] if filename.endswith(".txt") else filename
 
 
 # ---------------------------------------------------------------------------
