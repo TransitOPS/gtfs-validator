@@ -154,6 +154,9 @@ from gtfs_validator.validators.timeframe_overlap import validate_timeframe_overl
 from gtfs_validator.validators.timeframe_service_id_foreign_key import (
     validate_timeframe_service_id_foreign_key,
 )
+from gtfs_validator.validators.timeframe_start_and_end_time import (
+    validate_timeframe_start_and_end_time,
+)
 from gtfs_validator.validators.trip_usage import validate_trip_usage
 
 VALIDATOR_REGISTRY: list[ValidatorEntry] = [
@@ -505,6 +508,11 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
     ValidatorEntry(
         name="timeframe_service_id_foreign_key",
         fn=validate_timeframe_service_id_foreign_key,
+        requires=["timeframes"],
+    ),
+    ValidatorEntry(
+        name="timeframe_start_and_end_time",
+        fn=validate_timeframe_start_and_end_time,
         requires=["timeframes"],
     ),
 ]

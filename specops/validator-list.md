@@ -71,7 +71,7 @@
 67. ~~StopZoneIdValidator~~ ✅
 68. ~~TimeframeOverlapValidator~~ ✅
 69. ~~TimeframeServiceIdForeignKeyValidator~~ ✅
-70. TimeframeStartAndEndTimeValidator
+70. ~~TimeframeStartAndEndTimeValidator~~ ✅
 71. TimepointTimeValidator
 72. TransferDistanceValidator
 73. TransferStopIdsConditionalValidator
