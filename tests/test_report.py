@@ -49,7 +49,7 @@ def test_report_json_structure(tmp_output: Path):
 
     assert "summary" in report
     assert "notices" in report
-    assert report["summary"]["gtfsInput"] == "/test/feed.zip"
+    assert report["summary"]["gtfsInput"] == "file:///test/feed.zip"
     assert report["summary"]["countryCode"] == "ZZ"
     assert report["summary"]["gtfsFeatures"] == ["Shapes"]
     assert report["summary"]["counts"]["Stops"] == 2

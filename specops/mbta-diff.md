@@ -2,7 +2,7 @@
 2. Report size differs: old = 113,340 bytes, new = 179,455 bytes. ❌
 3. Runtime differs: old `validationTimeSeconds` = 4.215713167, new `validationTimeSeconds` = 66.115. ❌
 4. Country code differs: old `countryCode` = `US`, new `countryCode` = `ZZ`. ✅
-5. GTFS input path format differs: old `gtfsInput` = `file:///Users/ryanmahoney/Documents/gtfs-validator/out/gtfs-mbta.zip`, new `gtfsInput` = `out/gtfs-mbta.zip`.
+5. GTFS input path format differs: old `gtfsInput` = `file:///Users/ryanmahoney/Documents/gtfs-validator/out/gtfs-mbta.zip`, new `gtfsInput` = `out/gtfs-mbta.zip`. ✅
 6. Output report filenames differ in summary metadata: old points to `report.json`/`system_errors.json`/`report.html`, new points to `report-new.json`/`system_errors-new.json`/`report-new.html`.
 7. Total notice count differs: old = 859, new = 871.
 8. Notice group count differs: old = 12 groups, new = 16 groups.

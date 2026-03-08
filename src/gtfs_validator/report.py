@@ -7,6 +7,17 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
+
+def _to_file_uri(source: str) -> str:
+    """Convert a local path to an absolute file:// URI.
+
+    Paths that are already URIs (http://, https://, file://) are returned
+    unchanged.
+    """
+    if source.startswith(("http://", "https://", "file://")):
+        return source
+    return Path(source).resolve().as_uri()
+
 import polars as pl
 
 from gtfs_validator.config import ValidationConfig
@@ -63,7 +74,7 @@ def _build_validation_report(
     summary: dict[str, Any] = {
         "validatorVersion": __version__,
         "validatedAt": datetime.now(timezone.utc).isoformat(),
-        "gtfsInput": config.gtfs_source,
+        "gtfsInput": _to_file_uri(config.gtfs_source),
         "threads": config.num_threads,
         "outputDirectory": str(config.output_directory),
         "systemErrorsReportName": config.system_errors_report_name,
