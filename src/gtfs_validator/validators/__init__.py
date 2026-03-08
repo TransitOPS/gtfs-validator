@@ -140,6 +140,9 @@ from gtfs_validator.validators.stop_time_travel_speed import (
 from gtfs_validator.validators.stop_times_geography_id_presence import (
     validate_stop_times_geography_id_presence,
 )
+from gtfs_validator.validators.stop_times_shape_dist_traveled_presence import (
+    validate_stop_times_shape_dist_traveled_presence,
+)
 from gtfs_validator.validators.stop_times_record import (
     validate_stop_times_record,
 )
@@ -464,6 +467,11 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
     ValidatorEntry(
         name="stop_times_geography_id_presence",
         fn=validate_stop_times_geography_id_presence,
+        requires=["stop_times"],
+    ),
+    ValidatorEntry(
+        name="stop_times_shape_dist_traveled_presence",
+        fn=validate_stop_times_shape_dist_traveled_presence,
         requires=["stop_times"],
     ),
     ValidatorEntry(
