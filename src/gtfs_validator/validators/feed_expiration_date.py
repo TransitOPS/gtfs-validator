@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 from datetime import timedelta
 
 import polars as pl
@@ -30,9 +31,14 @@ def validate_feed_expiration_date(
 
     df = feed["feed_info"].filter(pl.col("feed_end_date").is_not_null())
 
+    def _parse_date(value: datetime.date | str) -> datetime.date:
+        if isinstance(value, datetime.date):
+            return value
+        return datetime.datetime.strptime(value, "%Y%m%d").date()
+
     notices: list[Notice] = []
     for row in df.iter_rows(named=True):
-        end_date = row["feed_end_date"]  # datetime.date after load-time cast
+        end_date = _parse_date(row["feed_end_date"])  # parse YYYYMMDD string or date
         row_number = row["csv_row_number"]  # int
 
         if end_date < plus_7:
