@@ -7,7 +7,7 @@ import datetime
 import polars as pl
 import pytest
 
-from gtfs_validator.context import ValidationContext
+from gtfs_validator.context import ValidationContext, build_stop_location_cache
 from gtfs_validator.notices import Severity
 from gtfs_validator.validators.stop_time_travel_speed import (
     get_speed_kph,
@@ -369,6 +369,16 @@ def test_far_stops_too_fast_all_three_notices() -> None:
     assert len(far) == 1
 
 
+def test_notice_ordering_for_consecutive_and_far_notices() -> None:
+    feed = _three_stop_feed(3, t0_dep=0, t1_arr=75, t1_dep=75, t2_arr=150)
+    notices = validate_stop_time_travel_speed(feed, CTX)
+    assert [n.code for n in notices] == [
+        "fast_travel_between_consecutive_stops",
+        "fast_travel_between_consecutive_stops",
+        "fast_travel_between_far_stops",
+    ]
+
+
 def test_middle_stop_missing_time_bridges_over() -> None:
     """Middle stop with unknown stop_id (no coords) → start stays at stop 0; stop 2 fast."""
     # Middle stop_id is "UNKNOWN" — not in stops table → resolve_stop_latlng returns None
@@ -399,6 +409,35 @@ def test_middle_stop_missing_time_bridges_over() -> None:
     assert len(consecutive) == 1
     assert consecutive[0].fields["stop_id1"] == "S0"
     assert consecutive[0].fields["stop_id2"] == "S2"
+
+
+def test_cached_stop_lookup_matches_uncached_behavior() -> None:
+    feed = make_feed(
+        stop_times=[
+            {"csv_row_number": 1, "trip_id": "T1", "stop_id": "S1",
+             "stop_sequence": 1, "arrival_time": 0, "departure_time": 0},
+            {"csv_row_number": 2, "trip_id": "T1", "stop_id": "S2",
+             "stop_sequence": 2, "arrival_time": 100, "departure_time": 100},
+        ],
+        trips=[{"csv_row_number": 10, "trip_id": "T1", "route_id": "R1"}],
+        routes=[{"route_id": "R1", "route_type": 3}],
+        stops=[
+            {"stop_id": "S0", "stop_name": "Parent", "stop_lat": 0.0, "stop_lon": 0.0,
+             "parent_station": None},
+            {"stop_id": "S1", "stop_name": "Child", "stop_lat": None, "stop_lon": None,
+             "parent_station": "S0"},
+            {"stop_id": "S2", "stop_name": "Stop 2", "stop_lat": 0.0, "stop_lon": 0.045,
+             "parent_station": None},
+        ],
+    )
+    uncached = validate_stop_time_travel_speed(feed, CTX)
+    cached_ctx = ValidationContext(
+        country_code=CTX.country_code,
+        date_for_validation=CTX.date_for_validation,
+        stop_location_cache=build_stop_location_cache(feed["stops"]),
+    )
+    cached = validate_stop_time_travel_speed(feed, cached_ctx)
+    assert cached == uncached
 
 
 def test_far_stop_check_emits_at_most_one_notice_per_trip() -> None:

@@ -60,43 +60,49 @@ def validate_stop_time_arrival_departure(
             )
         )
 
-    # --- Check 2: arrival must not be strictly before most recent prior departure ---
-    sorted_st = stop_times.sort(["trip_id", "stop_sequence"])
+    # --- Check 2: vectorized with forward-fill + shift ---
+    # Sort so rows within each trip are in stop_sequence order.
+    st = stop_times.sort(["trip_id", "stop_sequence"])
 
-    for trip_df in sorted_st.partition_by("trip_id", maintain_order=True):
-        rows = trip_df.select(
-            [
-                "csv_row_number",
-                "trip_id",
-                "stop_sequence",
-                "arrival_time",
-                "departure_time",
-            ]
-        ).iter_rows(named=True)
+    # Carry csv_row_number only for rows where departure is present (null otherwise).
+    st = st.with_columns(
+        pl.when(pl.col("departure_time").is_not_null())
+          .then(pl.col("csv_row_number"))
+          .alias("_dep_csv_row"),
+    )
 
-        prev_dep_row: dict | None = None
+    # Forward-fill within each trip: propagate last non-null departure to later stops.
+    # (Physical order == stop_sequence order since we pre-sorted.)
+    st = st.with_columns([
+        pl.col("departure_time").forward_fill().over("trip_id").alias("_ff_dep"),
+        pl.col("_dep_csv_row").forward_fill().over("trip_id").alias("_ff_dep_csv_row"),
+    ])
 
-        for row in rows:
-            arrival = row["arrival_time"]
-            departure = row["departure_time"]
+    # Shift by 1 within trip so each row sees the previous stop's last known departure.
+    st = st.with_columns([
+        pl.col("_ff_dep").shift(1).over("trip_id").alias("_prev_dep"),
+        pl.col("_ff_dep_csv_row").shift(1).over("trip_id").alias("_prev_csv_row_number"),
+    ])
 
-            if arrival is not None and prev_dep_row is not None:
-                if arrival < prev_dep_row["departure_time"]:
-                    notices.append(
-                        Notice(
-                            code="stop_time_with_arrival_before_previous_departure_time",
-                            severity=Severity.ERROR,
-                            fields={
-                                "csv_row_number": row["csv_row_number"],
-                                "prev_csv_row_number": prev_dep_row["csv_row_number"],
-                                "trip_id": row["trip_id"],
-                                "arrival_time": arrival,
-                                "departure_time": prev_dep_row["departure_time"],
-                            },
-                        )
-                    )
+    violations = st.filter(
+        pl.col("arrival_time").is_not_null()
+        & pl.col("_prev_dep").is_not_null()
+        & (pl.col("arrival_time") < pl.col("_prev_dep"))
+    )
 
-            if departure is not None:
-                prev_dep_row = row
+    for row in violations.iter_rows(named=True):
+        notices.append(
+            Notice(
+                code="stop_time_with_arrival_before_previous_departure_time",
+                severity=Severity.ERROR,
+                fields={
+                    "csv_row_number": row["csv_row_number"],
+                    "prev_csv_row_number": row["_prev_csv_row_number"],
+                    "trip_id": row["trip_id"],
+                    "arrival_time": row["arrival_time"],
+                    "departure_time": row["_prev_dep"],
+                },
+            )
+        )
 
     return notices

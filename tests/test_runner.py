@@ -33,15 +33,16 @@ def test_should_skip_missing_dependency():
 def test_safe_validate_success():
     entry = ValidatorEntry(name="good", fn=_good_validator, requires=[])
     ctx = ValidationContext(country_code="ZZ", date_for_validation=date.today())
-    notices, errors = safe_validate(entry, {}, ctx)
+    notices, errors, elapsed = safe_validate(entry, {}, ctx)
     assert len(notices) == 1
     assert len(errors) == 0
+    assert elapsed >= 0
 
 
 def test_safe_validate_exception():
     entry = ValidatorEntry(name="bad", fn=_bad_validator, requires=[])
     ctx = ValidationContext(country_code="ZZ", date_for_validation=date.today())
-    notices, errors = safe_validate(entry, {}, ctx)
+    notices, errors, elapsed = safe_validate(entry, {}, ctx)
     assert len(notices) == 0
     assert len(errors) == 1
     assert errors[0].code == "runtime_exception_in_validator"

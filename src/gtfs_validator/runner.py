@@ -6,17 +6,18 @@ import dataclasses
 import logging
 import pathlib
 import time
+from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import polars as pl
 
 from gtfs_validator.config import RunResult, ValidationConfig
-from gtfs_validator.context import ValidationContext
+from gtfs_validator.context import ValidationContext, build_stop_location_cache
 from gtfs_validator.features import detect_features
 from gtfs_validator.input import open_input
 from gtfs_validator.load_validators import run_load_validators
 from gtfs_validator.loading import TableStatus, load_feed
-from gtfs_validator.notices import Notice, NoticeContainer, Severity, SystemError
+from gtfs_validator.notices import Notice, NoticeContainer, SystemError
 from gtfs_validator.report import generate_reports
 from gtfs_validator.validators import VALIDATOR_REGISTRY, ValidatorEntry
 
@@ -94,14 +95,18 @@ def run(config: ValidationConfig) -> RunResult:
 
     try:
         # Stage 2: Load tables.
+        t2 = time.monotonic()
         feed, table_statuses, load_notices = load_feed(
             gtfs_input, config.num_threads,
         )
         notices.merge(load_notices)
+        logger.info("Stage 2 (load tables):        %.3fs", time.monotonic() - t2)
 
         # Stage 3: Load-time validation.
+        t3 = time.monotonic()
         load_val_notices = run_load_validators(feed, table_statuses)
         notices.merge(load_val_notices)
+        logger.info("Stage 3 (load validators):    %.3fs", time.monotonic() - t3)
 
         # Resolve effective country code: infer from agency_timezone when not
         # explicitly provided (i.e., when the placeholder "ZZ" is still set).
@@ -115,18 +120,30 @@ def run(config: ValidationConfig) -> RunResult:
         )
 
         # Stage 4: Multi-file validators.
+        stop_location_cache = None
+        stops_df = feed.get("stops")
+        if isinstance(stops_df, pl.DataFrame) and not stops_df.is_empty():
+            stop_location_cache = build_stop_location_cache(stops_df)
+
         ctx = ValidationContext(
             country_code=effective_country_code,
             date_for_validation=config.date_for_validation,
+            stop_location_cache=stop_location_cache,
         )
+        t4 = time.monotonic()
         _run_validators(feed, table_statuses, ctx, notices, config.num_threads)
+        logger.info("Stage 4 (validators total):   %.3fs", time.monotonic() - t4)
 
         # Stage 5: Feature detection.
+        t5 = time.monotonic()
         features = detect_features(feed)
+        logger.info("Stage 5 (feature detection):  %.3fs", time.monotonic() - t5)
 
         # Stage 6: Report generation.
+        t6 = time.monotonic()
         elapsed = time.monotonic() - start_time
         generate_reports(effective_config, feed, notices, features, elapsed)
+        logger.info("Stage 6 (report generation):  %.3fs", time.monotonic() - t6)
 
     finally:
         # Stage 7: Cleanup.
@@ -138,6 +155,7 @@ def run(config: ValidationConfig) -> RunResult:
                 fields={"message": str(exc)},
             ))
 
+    logger.info("Total elapsed:                %.3fs", time.monotonic() - start_time)
     if notices.has_system_errors():
         return RunResult.SYSTEM_ERRORS
     return RunResult.SUCCESS
@@ -162,13 +180,17 @@ def should_skip(
 
 def safe_validate(
     entry: ValidatorEntry,
-    feed: dict[str, object],
+    feed: Mapping[str, object],
     ctx: ValidationContext,
-) -> tuple[list[Notice], list[SystemError]]:
-    """Execute a validator, catching any runtime exceptions."""
+) -> tuple[list[Notice], list[SystemError], float]:
+    """Execute a validator, catching any runtime exceptions.
+
+    Returns notices, system errors, and elapsed seconds.
+    """
+    t0 = time.monotonic()
     try:
         result = entry.fn(feed, ctx)  # type: ignore[arg-type]
-        return result, []
+        return result, [], time.monotonic() - t0
     except Exception as exc:
         return [], [SystemError(
             code="runtime_exception_in_validator",
@@ -177,11 +199,11 @@ def safe_validate(
                 "exception": type(exc).__name__,
                 "message": str(exc),
             },
-        )]
+        )], time.monotonic() - t0
 
 
 def _run_validators(
-    feed: dict[str, object],
+    feed: Mapping[str, object],
     table_statuses: dict[str, TableStatus],
     ctx: ValidationContext,
     notices: NoticeContainer,
@@ -193,9 +215,12 @@ def _run_validators(
     if not entries:
         return
 
+    timings: list[tuple[str, float]] = []
+
     if num_threads <= 1:
         for entry in entries:
-            result_notices, result_errors = safe_validate(entry, feed, ctx)
+            result_notices, result_errors, elapsed = safe_validate(entry, feed, ctx)
+            timings.append((entry.name, elapsed))
             notices.add_all(result_notices)
             for err in result_errors:
                 notices.add_system_error(err)
@@ -206,7 +231,24 @@ def _run_validators(
                 for e in entries
             }
             for fut in as_completed(futures):
-                result_notices, result_errors = fut.result()
+                entry = futures[fut]
+                result_notices, result_errors, elapsed = fut.result()
+                timings.append((entry.name, elapsed))
                 notices.add_all(result_notices)
                 for err in result_errors:
                     notices.add_system_error(err)
+
+    _log_validator_timings(timings)
+
+
+def _log_validator_timings(timings: list[tuple[str, float]]) -> None:
+    """Log per-validator elapsed times sorted slowest-first."""
+    if not timings:
+        return
+    timings_sorted = sorted(timings, key=lambda t: t[1], reverse=True)
+    total = sum(t for _, t in timings)
+    lines = ["Validator timings (slowest first):"]
+    for name, elapsed in timings_sorted:
+        lines.append(f"  {elapsed:7.3f}s  {name}")
+    lines.append(f"  {'total':->7}   {total:.3f}s  ({len(timings)} validators)")
+    logger.info("\n".join(lines))

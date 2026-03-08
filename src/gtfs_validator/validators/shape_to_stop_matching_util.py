@@ -46,6 +46,7 @@ class ShapePoint:
     user_distance: float  # running max of shape_dist_traveled (0.0 if null)
     lat: float
     lon: float
+    uv: tuple[float, float, float] = field(default_factory=lambda: (0.0, 0.0, 0.0))  # precomputed unit vector
 
 
 @dataclass
@@ -200,7 +201,13 @@ def build_shape_points(shape_rows: list[dict]) -> list[ShapePoint]:
         raw_user = row.get("shape_dist_traveled") or 0.0
         user_dist = max(user_dist, float(raw_user))
         result.append(
-            ShapePoint(geo_distance=geo_dist, user_distance=user_dist, lat=lat, lon=lon)
+            ShapePoint(
+                geo_distance=geo_dist,
+                user_distance=user_dist,
+                lat=lat,
+                lon=lon,
+                uv=latlng_to_unit_vector(lat, lon),
+            )
         )
         prev_lat, prev_lon = lat, lon
 
@@ -341,6 +348,11 @@ def find_potential_matches(
 
     p = latlng_to_unit_vector(stop.lat, stop.lon)
 
+    # Precompute per-stop bounding-box slack to quickly skip distant segments.
+    _METERS_PER_DEG = 111_320.0
+    lat_slack = max_dist / _METERS_PER_DEG
+    lon_slack = max_dist / (_METERS_PER_DEG * max(cos(radians(abs(stop.lat))), 0.01))
+
     in_close_run = False
     run_best_dist = math.inf
     run_best_match: Optional[CandidateMatch] = None
@@ -349,8 +361,24 @@ def find_potential_matches(
     for i in range(len(shape_points) - 1):
         a = shape_points[i]
         b = shape_points[i + 1]
-        av = latlng_to_unit_vector(a.lat, a.lon)
-        bv = latlng_to_unit_vector(b.lat, b.lon)
+
+        # Fast bbox rejection before expensive spherical geometry.
+        if (
+            stop.lat < min(a.lat, b.lat) - lat_slack
+            or stop.lat > max(a.lat, b.lat) + lat_slack
+            or stop.lon < min(a.lon, b.lon) - lon_slack
+            or stop.lon > max(a.lon, b.lon) + lon_slack
+        ):
+            if in_close_run:
+                assert run_best_match is not None
+                matches.append(run_best_match)
+                in_close_run = False
+                run_best_dist = math.inf
+                run_best_match = None
+            continue
+
+        av = a.uv
+        bv = b.uv
         closest_lat, closest_lon = closest_point_on_edge(p, av, bv)
         dist = geo_distance_meters(stop.lat, stop.lon, closest_lat, closest_lon)
 
@@ -409,8 +437,8 @@ def find_closest_on_shape(
     for i in range(len(shape_points) - 1):
         a = shape_points[i]
         b = shape_points[i + 1]
-        av = latlng_to_unit_vector(a.lat, a.lon)
-        bv = latlng_to_unit_vector(b.lat, b.lon)
+        av = a.uv
+        bv = b.uv
         closest_lat, closest_lon = closest_point_on_edge(p, av, bv)
         dist = geo_distance_meters(stop.lat, stop.lon, closest_lat, closest_lon)
         if dist < best_dist:
