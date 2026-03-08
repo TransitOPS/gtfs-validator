@@ -25,7 +25,7 @@
 21. ~~FeedValidTodayValidator~~ ✅
 22. ~~GeoJsonGeometryValidator~~ ✅
 23. ~~GtfsFareLegRuleNetworkIdForeignKeyValidator~~ ✅
-24. GtfsTripServiceIdForeignKeyValidator
+24. ~~GtfsTripServiceIdForeignKeyValidator~~ ✅
 25. InconsistentRouteTypeForBlockIdValidator
 26. InconsistentRouteTypeForInSeatTransferValidator
 27. LocationHasStopTimesValidator

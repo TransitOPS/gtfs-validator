@@ -60,6 +60,9 @@ from gtfs_validator.validators.feed_expiration_date import validate_feed_expirat
 from gtfs_validator.validators.feed_service_date import validate_feed_service_date
 from gtfs_validator.validators.feed_valid_today import validate_feed_valid_today
 from gtfs_validator.validators.pathways import validate_bidirectional_exit_gate
+from gtfs_validator.validators.trip_service_id_foreign_key_validator import (
+    validate_trip_service_id_foreign_key,
+)
 from gtfs_validator.validators.trip_usage import validate_trip_usage
 
 VALIDATOR_REGISTRY: list[ValidatorEntry] = [
@@ -182,5 +185,10 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="geojson_geometry",
         fn=validate_geojson_geometry,
         requires=["locations_geojson"],
+    ),
+    ValidatorEntry(
+        name="trip_service_id_foreign_key",
+        fn=validate_trip_service_id_foreign_key,
+        requires=["trips"],
     ),
 ]
