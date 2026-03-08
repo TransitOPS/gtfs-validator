@@ -29,7 +29,7 @@
 25. ~~InconsistentRouteTypeForBlockIdValidator~~ ✅
 26. ~~InconsistentRouteTypeForInSeatTransferValidator~~ ✅
 27. ~~LocationHasStopTimesValidator~~ ✅
-28. LocationIdForeignKeyValidator
+28. ~~LocationIdForeignKeyValidator~~ ✅
 29. LocationTypeSingleEntityValidator
 30. MatchingFeedAndAgencyLangValidator
 31. MissingCalendarAndCalendarDateValidator
