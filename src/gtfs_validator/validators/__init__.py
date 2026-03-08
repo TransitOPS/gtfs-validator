@@ -91,6 +91,9 @@ from gtfs_validator.validators.pickup_booking_rule_id import (
 from gtfs_validator.validators.pickup_drop_off_type import (
     validate_pickup_drop_off_type,
 )
+from gtfs_validator.validators.pickup_drop_off_window import (
+    validate_pickup_drop_off_window,
+)
 from gtfs_validator.validators.parent_station import validate_parent_station
 from gtfs_validator.validators.pathway_dangling_generic_node import (
     validate_pathway_dangling_generic_node,
@@ -317,6 +320,11 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
     ValidatorEntry(
         name="pickup_drop_off_type",
         fn=validate_pickup_drop_off_type,
+        requires=["stop_times"],
+    ),
+    ValidatorEntry(
+        name="pickup_drop_off_window",
+        fn=validate_pickup_drop_off_window,
         requires=["stop_times"],
     ),
     ValidatorEntry(
