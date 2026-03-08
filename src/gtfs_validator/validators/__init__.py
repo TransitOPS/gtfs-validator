@@ -45,6 +45,9 @@ from gtfs_validator.validators.fare_media_name import validate_fare_media_name
 from gtfs_validator.validators.fare_transfer_rule_duration_limit_type import (
     validate_fare_transfer_rule_duration_limit_type,
 )
+from gtfs_validator.validators.fare_transfer_rule_transfer_count import (
+    validate_fare_transfer_rule_transfer_count,
+)
 from gtfs_validator.validators.fare_product_default_rider_categories import (
     validate_fare_product_default_rider_categories,
 )
@@ -129,6 +132,11 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
     ValidatorEntry(
         name="fare_transfer_rule_duration_limit_type",
         fn=validate_fare_transfer_rule_duration_limit_type,
+        requires=["fare_transfer_rules"],
+    ),
+    ValidatorEntry(
+        name="fare_transfer_rule_transfer_count",
+        fn=validate_fare_transfer_rule_transfer_count,
         requires=["fare_transfer_rules"],
     ),
 ]
