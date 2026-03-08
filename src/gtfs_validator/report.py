@@ -231,9 +231,11 @@ def _build_validation_report(
             agencies.append(entry)
         summary["agencies"] = agencies
 
-    # Files present.
+    # Files present.  Only emit the .txt-suffixed filename keys; the feed dict
+    # also contains extensionless alias keys (e.g. "calendar") which are
+    # internal convenience aliases and must not appear in the report.
     summary["files"] = sorted(
-        fname for fname, df in feed.items() if df.height > 0
+        fname for fname, df in feed.items() if fname.endswith(".txt") and df.height > 0
     )
 
     # Entity counts.
