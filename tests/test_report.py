@@ -35,7 +35,8 @@ def test_report_json_structure(tmp_output: Path):
             "trip_id": ["T1"],
             "block_id": ["B1"],
         }),
-        "shapes.txt": pl.DataFrame({"shape_id": ["SH1"]}),
+        # Two rows for the same shape_id SH1 — should count as 1 distinct shape.
+        "shapes.txt": pl.DataFrame({"shape_id": ["SH1", "SH1"]}),
     }
     notices = NoticeContainer()
     notices.add(Notice("test_notice", Severity.WARNING, {"detail": "x"}))
@@ -54,6 +55,8 @@ def test_report_json_structure(tmp_output: Path):
     assert report["summary"]["gtfsFeatures"] == ["Shapes"]
     assert report["summary"]["counts"]["Stops"] == 2
     assert report["summary"]["counts"]["Blocks"] == 1
+    # Shapes count distinct shape_id values, not raw rows.
+    assert report["summary"]["counts"]["Shapes"] == 1
     assert len(report["notices"]) == 1
     assert report["notices"][0]["code"] == "test_notice"
     assert report["notices"][0]["severity"] == "WARNING"

@@ -136,7 +136,6 @@ def _build_validation_report(
 def _entity_counts(feed: dict[str, pl.DataFrame]) -> dict[str, int]:
     counts: dict[str, int] = {}
     for key, label in [
-        ("shapes.txt", "Shapes"),
         ("stops.txt", "Stops"),
         ("routes.txt", "Routes"),
         ("trips.txt", "Trips"),
@@ -145,6 +144,14 @@ def _entity_counts(feed: dict[str, pl.DataFrame]) -> dict[str, int]:
         df = feed.get(key)
         if df is not None:
             counts[label] = df.height
+
+    # Shapes: count distinct shape_id values (each shape_id is one logical shape,
+    # but shapes.txt has multiple rows per shape_id for individual points).
+    shapes = feed.get("shapes.txt")
+    if shapes is not None and "shape_id" in shapes.columns:
+        counts["Shapes"] = shapes.select("shape_id").drop_nulls().n_unique()
+    elif shapes is not None:
+        counts["Shapes"] = shapes.height
 
     # Blocks = distinct block_id values from trips.txt.
     trips = feed.get("trips.txt")
