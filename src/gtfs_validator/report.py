@@ -213,14 +213,22 @@ def _build_validation_report(
     if ag is not None and ag.height > 0:
         agencies = []
         for row in ag.iter_rows(named=True):
-            agencies.append({
-                k: v for k, v in {
-                    "name": row.get("agency_name"),
-                    "url": row.get("agency_url"),
-                    "phone": row.get("agency_phone"),
-                    "email": row.get("agency_email"),
-                }.items() if v is not None
-            })
+            entry: dict[str, Any] = {}
+            for out_key, col_key in [
+                ("name", "agency_name"),
+                ("url", "agency_url"),
+                ("phone", "agency_phone"),
+                # email: include as empty string when absent/null (matches Java behaviour)
+                ("email", "agency_email"),
+                ("timezone", "agency_timezone"),
+            ]:
+                val = row.get(col_key)
+                # Include non-None values as-is; for email default to "" when absent
+                if val is not None:
+                    entry[out_key] = val
+                elif out_key == "email":
+                    entry[out_key] = ""
+            agencies.append(entry)
         summary["agencies"] = agencies
 
     # Files present.
