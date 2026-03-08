@@ -22,6 +22,16 @@ def _time_to_secs(t: str) -> int:
     return int(h) * 3600 + int(m) * 60 + int(s)
 
 
+def _parse_gtfs_time_expr(col_name: str) -> pl.Expr:
+    """Vectorized Polars expression: GTFS time string → seconds since midnight."""
+    g = pl.col(col_name).str.extract_groups(r"^(\d+):(\d{2}):(\d{2})$")
+    return (
+        g.struct.field("1").cast(pl.Int64) * 3600
+        + g.struct.field("2").cast(pl.Int64) * 60
+        + g.struct.field("3").cast(pl.Int64)
+    ).alias(col_name + "_secs")
+
+
 def validate_overlapping_frequency(
     feed: dict[str, pl.DataFrame],
     ctx: ValidationContext,
@@ -38,14 +48,10 @@ def validate_overlapping_frequency(
     if frequencies.is_empty():
         return []
 
-    # Add integer-seconds columns for sorting and comparison
+    # Add integer-seconds columns for sorting and comparison (vectorized)
     frequencies = frequencies.with_columns([
-        pl.col("start_time")
-        .map_elements(_time_to_secs, return_dtype=pl.Int64)
-        .alias("start_secs"),
-        pl.col("end_time")
-        .map_elements(_time_to_secs, return_dtype=pl.Int64)
-        .alias("end_secs"),
+        _parse_gtfs_time_expr("start_time"),
+        _parse_gtfs_time_expr("end_time"),
     ])
 
     notices: list[Notice] = []
@@ -54,13 +60,13 @@ def validate_overlapping_frequency(
         if len(group) < 2:
             continue
 
-        sorted_group = group.sort(["start_secs", "end_secs", "headway_secs"])
+        sorted_group = group.sort(["start_time_secs", "end_time_secs", "headway_secs"])
         rows = sorted_group.to_dicts()
 
         for i in range(len(rows) - 1):
             prev = rows[i]
             curr = rows[i + 1]
-            if curr["start_secs"] < prev["end_secs"]:
+            if curr["start_time_secs"] < prev["end_time_secs"]:
                 notices.append(
                     Notice(
                         code="overlapping_frequency",

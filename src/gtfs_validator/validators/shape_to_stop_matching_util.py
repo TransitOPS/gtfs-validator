@@ -5,9 +5,7 @@ All functions are pure Python (no Polars) for clarity and testability.
 
 from __future__ import annotations
 
-import hashlib
 import math
-import struct
 from dataclasses import dataclass, field
 from math import asin, atan2, cos, degrees, radians, sin, sqrt
 from typing import Optional
@@ -185,15 +183,14 @@ def closest_point_on_edge(
 
 
 def build_shape_points(shape_rows: list[dict]) -> list[ShapePoint]:
-    """Build a list of ShapePoint from raw shape row dicts, sorted by sequence."""
-    sorted_rows = sorted(shape_rows, key=lambda r: r["shape_pt_sequence"])
+    """Build a list of ShapePoint from shape row dicts (pre-sorted by shape_pt_sequence)."""
     geo_dist = 0.0
     user_dist = 0.0
     result: list[ShapePoint] = []
     prev_lat: Optional[float] = None
     prev_lon: Optional[float] = None
 
-    for row in sorted_rows:
+    for row in shape_rows:
         lat = float(row["shape_pt_lat"])
         lon = float(row["shape_pt_lon"])
         if prev_lat is not None and prev_lon is not None:
@@ -243,13 +240,21 @@ def build_stop_points(
     stop_times: list[dict],
     stops_by_id: dict,
     is_large_route: bool,
+    resolved_latlng: Optional[dict] = None,
 ) -> list[StopPoint]:
-    """Build a list of StopPoint from sorted stop_times dicts."""
-    sorted_times = sorted(stop_times, key=lambda r: r["stop_sequence"])
-    n = len(sorted_times)
+    """Build a list of StopPoint from stop_times dicts (pre-sorted by stop_sequence).
+
+    If *resolved_latlng* is provided (e.g. from StopLocationCache), coordinates
+    are looked up directly without traversing parent_station chains.
+    """
+    n = len(stop_times)
     result: list[StopPoint] = []
-    for i, st in enumerate(sorted_times):
-        lat, lon = resolve_stop_location(st["stop_id"], stops_by_id)
+    for i, st in enumerate(stop_times):
+        if resolved_latlng is not None:
+            ll = resolved_latlng.get(st["stop_id"])
+            lat, lon = (ll[0], ll[1]) if ll is not None else (0.0, 0.0)
+        else:
+            lat, lon = resolve_stop_location(st["stop_id"], stops_by_id)
         user_dist = st.get("shape_dist_traveled") or 0.0
         is_large = is_large_route and (i == 0 or i == n - 1)
         result.append(
@@ -264,17 +269,12 @@ def build_stop_points(
     return result
 
 
-def compute_trip_hash(stop_times: list[dict]) -> bytes:
-    """Stable hash over (stop_id, shape_dist_traveled) sequence."""
-    h = hashlib.sha256()
-    h.update(struct.pack(">I", len(stop_times)))
-    for st in stop_times:
-        sid = (st.get("stop_id") or "").encode("utf-8")
-        h.update(struct.pack(">I", len(sid)))
-        h.update(sid)
-        dist = st.get("shape_dist_traveled") or 0.0
-        h.update(struct.pack(">d", float(dist)))
-    return h.digest()
+def compute_trip_hash(stop_times: list[dict]) -> tuple:
+    """Stable signature over (stop_id, shape_dist_traveled) sequence for deduplication."""
+    return tuple(
+        (st.get("stop_id") or "", float(st.get("shape_dist_traveled") or 0.0))
+        for st in stop_times
+    )
 
 
 # ---------------------------------------------------------------------------

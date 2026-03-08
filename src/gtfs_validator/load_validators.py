@@ -6,6 +6,7 @@ table is loaded and operate on the loaded DataFrames using Polars expressions.
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from zoneinfo import available_timezones
 
 import polars as pl
@@ -20,31 +21,56 @@ from gtfs_validator.schemas import (
 )
 
 _VALID_TIMEZONES: set[str] = available_timezones()
+_VALID_TIMEZONES_LIST: list[str] = list(_VALID_TIMEZONES)
+
+
+def _run_per_table(table_def: TableDefinition, df: pl.DataFrame) -> NoticeContainer:
+    """Run all per-table load validators for a single table."""
+    notices = NoticeContainer()
+    _check_primary_key(df, table_def, notices)
+    _check_end_ranges(df, table_def, notices)
+    _check_mixed_case(df, table_def, notices)
+    _check_near_origin(df, table_def, notices)
+    _check_timezone_values(df, table_def, notices)
+    return notices
 
 
 def run_load_validators(
     feed: dict[str, pl.DataFrame],
     table_statuses: dict[str, TableStatus],
+    num_threads: int = 1,
 ) -> NoticeContainer:
-    """Execute all schema-driven load-time checks."""
+    """Execute all schema-driven load-time checks.
+
+    Per-table checks (PK, end-range, mixed-case, near-origin, timezone) run in
+    parallel via *num_threads* when > 1.  Foreign-key checks are always
+    sequential because they require the full feed to be present.
+    """
     notices = NoticeContainer()
 
+    tables_to_validate: list[tuple[TableDefinition, pl.DataFrame]] = []
     for table_def in TABLE_BY_FILENAME.values():
         status = table_statuses.get(table_def.filename, TableStatus.MISSING_FILE)
         if status not in (TableStatus.PARSABLE, TableStatus.EMPTY_FILE):
             continue
-
         df = feed.get(table_def.filename)
         if df is None or df.height == 0:
             continue
+        tables_to_validate.append((table_def, df))
 
-        _check_primary_key(df, table_def, notices)
-        _check_end_ranges(df, table_def, notices)
-        _check_mixed_case(df, table_def, notices)
-        _check_near_origin(df, table_def, notices)
-        _check_timezone_values(df, table_def, notices)
+    if num_threads <= 1 or len(tables_to_validate) <= 1:
+        for table_def, df in tables_to_validate:
+            notices.merge(_run_per_table(table_def, df))
+    else:
+        with ThreadPoolExecutor(max_workers=num_threads) as pool:
+            futures = {
+                pool.submit(_run_per_table, td, df): None
+                for td, df in tables_to_validate
+            }
+            for fut in as_completed(futures):
+                notices.merge(fut.result())
 
-    # Foreign key checks require cross-table access.
+    # Foreign key checks require cross-table access; always sequential.
     _check_all_foreign_keys(feed, table_statuses, notices)
 
     return notices
@@ -321,8 +347,9 @@ def _check_timezone_values(
         if non_null.height == 0:
             continue
 
-        values = non_null.get_column(col_def.name).to_list()
-        bad_count = sum(1 for v in values if v not in _VALID_TIMEZONES)
+        bad_count = non_null.select(
+            (~pl.col(col_def.name).is_in(_VALID_TIMEZONES_LIST)).sum()
+        ).item()
         if bad_count > 0:
             notices.add(Notice(
                 code="invalid_timezone",

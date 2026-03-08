@@ -14,6 +14,7 @@ import math
 from bisect import bisect_left
 from collections.abc import Mapping
 
+import numpy as np
 import polars as pl
 
 from gtfs_validator.context import (
@@ -63,6 +64,37 @@ def _time_to_seconds(t: str) -> int | None:
         return None
     h, m, s = t.split(":")
     return int(h) * 3600 + int(m) * 60 + int(s)
+
+
+def _parse_gtfs_time_expr(col_name: str) -> pl.Expr:
+    """Vectorized Polars expression: GTFS time string → seconds since midnight.
+
+    Handles times > 24h (e.g. ``"25:30:00"``). Nulls and non-matching values
+    produce null output.
+    """
+    g = pl.col(col_name).str.extract_groups(r"^(\d+):(\d{2}):(\d{2})$")
+    return (
+        g.struct.field("1").cast(pl.Int64) * 3600
+        + g.struct.field("2").cast(pl.Int64) * 60
+        + g.struct.field("3").cast(pl.Int64)
+    ).alias(col_name)
+
+
+def _haversine_km_vectorized(
+    lat1: np.ndarray,
+    lon1: np.ndarray,
+    lat2: np.ndarray,
+    lon2: np.ndarray,
+) -> np.ndarray:
+    """Vectorized haversine distance in km. NaN inputs propagate as NaN."""
+    R = 6371.0
+    dlat = np.radians(lat2 - lat1)
+    dlon = np.radians(lon2 - lon1)
+    a = (
+        np.sin(dlat / 2) ** 2
+        + np.cos(np.radians(lat1)) * np.cos(np.radians(lat2)) * np.sin(dlon / 2) ** 2
+    )
+    return R * 2 * np.arcsin(np.sqrt(np.clip(a, 0.0, 1.0)))
 
 
 def get_max_speed_kph(route_type: int) -> float:
@@ -240,13 +272,12 @@ def validate_stop_time_travel_speed(
     if joined.is_empty():
         return []
 
-    for time_col in ("arrival_time", "departure_time"):
-        if time_col in joined.columns and joined[time_col].dtype == pl.Utf8:
-            joined = joined.with_columns(
-                pl.col(time_col)
-                .map_elements(_time_to_seconds, return_dtype=pl.Int64)
-                .alias(time_col)
-            )
+    time_cols_to_parse = [
+        c for c in ("arrival_time", "departure_time")
+        if c in joined.columns and joined[c].dtype == pl.Utf8
+    ]
+    if time_cols_to_parse:
+        joined = joined.with_columns([_parse_gtfs_time_expr(c) for c in time_cols_to_parse])
 
     trip_ids = joined["trip_id"].to_list()
     route_ids = joined["route_id"].to_list()
@@ -281,69 +312,71 @@ def validate_stop_time_travel_speed(
         route_id = route_ids[trip_start]
         trip_csv_row_number = trip_csv_row_numbers[trip_start]
 
-        # Consecutive-stop check with exact bridging behavior.
-        start_idx = trip_start
-        start_latlng = resolved_latlng_by_stop_id.get(stop_ids[start_idx])
-        for end_idx in range(trip_start + 1, trip_end):
-            end_latlng = resolved_latlng_by_stop_id.get(stop_ids[end_idx])
-
-            if start_latlng is None or end_latlng is None:
-                continue
-
-            distance_km = haversine_km(*start_latlng, *end_latlng)
-
-            departure_secs = departure_times[start_idx]
-            arrival_secs = arrival_times[end_idx]
-            if departure_secs is None or arrival_secs is None:
-                start_idx = end_idx
-                start_latlng = end_latlng
-                continue
-
-            speed = get_speed_kph(distance_km, departure_secs, arrival_secs)
-            if speed > max_speed:
-                notices.append(
-                    Notice(
-                        code="fast_travel_between_consecutive_stops",
-                        severity=Severity.WARNING,
-                        fields=_build_notice_fields(
-                            int(trip_csv_row_number),
-                            str(trip_id),
-                            str(route_id),
-                            speed,
-                            distance_km,
-                            start_idx,
-                            end_idx,
-                            csv_row_numbers,
-                            stop_sequences,
-                            stop_ids,
-                            departure_times,
-                            arrival_times,
-                            stop_name_by_stop_id,
-                        ),
-                    )
-                )
-
-            start_idx = end_idx
-            start_latlng = end_latlng
-
-        # Precompute per-trip consecutive segment distances and prefix sums.
+        # Precompute latlngs for all stops in this trip.
         trip_len = trip_end - trip_start
-        segment_distances_km: list[float] = [0.0] * (trip_len - 1)
-        prefix_distances_km: list[float] = [0.0] * trip_len
-        total_trip_distance_km = 0.0
+        trip_latlngs: list[tuple[float, float] | None] = [
+            resolved_latlng_by_stop_id.get(stop_ids[trip_start + i])
+            for i in range(trip_len)
+        ]
 
-        for rel_idx in range(trip_len - 1):
-            left_idx = trip_start + rel_idx
-            right_idx = left_idx + 1
-            left_latlng = resolved_latlng_by_stop_id.get(stop_ids[left_idx])
-            right_latlng = resolved_latlng_by_stop_id.get(stop_ids[right_idx])
-            if left_latlng is None or right_latlng is None:
-                segment_distance_km = 0.0
-            else:
-                segment_distance_km = haversine_km(*left_latlng, *right_latlng)
-            segment_distances_km[rel_idx] = segment_distance_km
-            total_trip_distance_km += segment_distance_km
-            prefix_distances_km[rel_idx + 1] = total_trip_distance_km
+        # Vectorized prefix-sum distances (NaN segments treated as 0 km).
+        lats_arr = np.array(
+            [ll[0] if ll is not None else np.nan for ll in trip_latlngs]
+        )
+        lons_arr = np.array(
+            [ll[1] if ll is not None else np.nan for ll in trip_latlngs]
+        )
+        seg_dists_raw = _haversine_km_vectorized(
+            lats_arr[:-1], lons_arr[:-1], lats_arr[1:], lons_arr[1:]
+        )
+        seg_dists_safe = np.where(np.isnan(seg_dists_raw), 0.0, seg_dists_raw)
+        prefix_distances_km = np.concatenate([[0.0], np.cumsum(seg_dists_safe)])
+        total_trip_distance_km = float(prefix_distances_km[-1])
+
+        # Consecutive-stop check: iterate over consecutive valid-latlng pairs.
+        # Precompute distances between consecutive valid stops using NumPy.
+        valid_rel_indices = [i for i in range(trip_len) if trip_latlngs[i] is not None]
+        if len(valid_rel_indices) >= 2:
+            v_lats = lats_arr[valid_rel_indices]
+            v_lons = lons_arr[valid_rel_indices]
+            consec_dists = _haversine_km_vectorized(
+                v_lats[:-1], v_lons[:-1], v_lats[1:], v_lons[1:]
+            )
+            for j in range(len(valid_rel_indices) - 1):
+                start_rel = valid_rel_indices[j]
+                end_rel = valid_rel_indices[j + 1]
+                start_idx = trip_start + start_rel
+                end_idx = trip_start + end_rel
+
+                departure_secs = departure_times[start_idx]
+                arrival_secs = arrival_times[end_idx]
+                if departure_secs is None or arrival_secs is None:
+                    continue
+
+                distance_km = float(consec_dists[j])
+                speed = get_speed_kph(distance_km, departure_secs, arrival_secs)
+                if speed > max_speed:
+                    notices.append(
+                        Notice(
+                            code="fast_travel_between_consecutive_stops",
+                            severity=Severity.WARNING,
+                            fields=_build_notice_fields(
+                                int(trip_csv_row_number),
+                                str(trip_id),
+                                str(route_id),
+                                speed,
+                                distance_km,
+                                start_idx,
+                                end_idx,
+                                csv_row_numbers,
+                                stop_sequences,
+                                stop_ids,
+                                departure_times,
+                                arrival_times,
+                                stop_name_by_stop_id,
+                            ),
+                        )
+                    )
 
         # Cheap skip: no far-stop pair can exceed the distance threshold.
         if total_trip_distance_km > FAR_STOP_DISTANCE_THRESHOLD_KM:

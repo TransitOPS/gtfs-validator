@@ -174,6 +174,13 @@ def validate_shape_to_stop_matching(
     stop_times_df = feed["stop_times"]
     shapes_df = feed["shapes"]
 
+    # Use pre-resolved coordinates from context cache when available.
+    resolved_latlng = (
+        ctx.stop_location_cache.resolved_latlng_by_stop_id
+        if ctx.stop_location_cache is not None
+        else None
+    )
+
     # Select only needed columns for stops (graceful about optional columns)
     stops_cols = ["stop_id", "stop_name", "stop_lat", "stop_lon"]
     optional_stops = ["parent_station", "location_type"]
@@ -200,11 +207,10 @@ def validate_shape_to_stop_matching(
         if col in stop_times_df.columns:
             available_st_cols.append(col)
 
+    # Pre-sort in Polars (vectorized, GIL-released) so Python loops need no further sorting.
     st_by_trip_id: dict[str, list[dict]] = defaultdict(list)
-    for row in stop_times_df.select(available_st_cols).to_dicts():
+    for row in stop_times_df.select(available_st_cols).sort(["trip_id", "stop_sequence"]).to_dicts():
         st_by_trip_id[row["trip_id"]].append(row)
-    for tid in st_by_trip_id:
-        st_by_trip_id[tid].sort(key=lambda r: r["stop_sequence"])
 
     # Group trips by shape_id
     trip_cols = ["trip_id", "route_id", "shape_id", "csv_row_number"]
@@ -221,8 +227,9 @@ def validate_shape_to_stop_matching(
         if col in shapes_df.columns:
             available_shape_cols.append(col)
 
+    # Pre-sort by shape_pt_sequence in Polars so build_shape_points needs no further sorting.
     shapes_groups: dict[str, list[dict]] = defaultdict(list)
-    for row in shapes_df.select(available_shape_cols).to_dicts():
+    for row in shapes_df.select(available_shape_cols).sort(["shape_id", "shape_pt_sequence"]).to_dicts():
         shapes_groups[row["shape_id"]].append(row)
 
     notices: list[Notice] = []
@@ -238,7 +245,7 @@ def validate_shape_to_stop_matching(
 
         shape_has_user_dist = shape_points[-1].user_distance > 0.0
         reported_stop_ids: set[str] = set()
-        seen_trip_hashes: set[bytes] = set()
+        seen_trip_hashes: set[tuple] = set()
 
         for trip in trips_for_shape:
             trip_id = trip["trip_id"]
@@ -256,7 +263,7 @@ def validate_shape_to_stop_matching(
                 continue
 
             is_large_route = route["route_type"] == RAIL_ROUTE_TYPE
-            stop_points = build_stop_points(stop_times, stops_by_id, is_large_route)
+            stop_points = build_stop_points(stop_times, stops_by_id, is_large_route, resolved_latlng)
 
             # Geo-distance matching (always)
             geo_problems = match_using_geo_distance(stop_points, shape_points, settings)

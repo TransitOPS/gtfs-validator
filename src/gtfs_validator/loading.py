@@ -283,14 +283,16 @@ def _normalise_strings(
 ) -> pl.DataFrame:
     """Trim whitespace, emit notices, and convert empty strings to null."""
     col_map = table_def.column_map()
-    exprs: list[pl.Expr] = []
 
-    for col_name in df.columns:
-        col = pl.col(col_name)
-        if col_name in col_map:
-            # Detect leading/trailing whitespace.
-            has_ws = col.str.strip_chars() != col
-            ws_count = df.select(has_ws.sum()).item()
+    # Batch all whitespace counts into one pass over the DataFrame.
+    ws_check_cols = [c for c in df.columns if c in col_map]
+    if ws_check_cols:
+        ws_counts = df.select([
+            (pl.col(c).str.strip_chars() != pl.col(c)).sum().alias(c)
+            for c in ws_check_cols
+        ]).row(0, named=True)
+        for col_name in ws_check_cols:
+            ws_count = ws_counts[col_name]
             if ws_count > 0:
                 notices.append(Notice(
                     code="leading_or_trailing_whitespaces",
@@ -302,14 +304,11 @@ def _normalise_strings(
                     },
                 ))
 
-        # Trim and replace empty string with null.
-        exprs.append(
-            col.str.strip_chars()
-            .replace("", None)
-            .alias(col_name)
-        )
-
-    return df.select(exprs)
+    # Trim and replace empty string with null in a single pass.
+    return df.select([
+        pl.col(col_name).str.strip_chars().replace("", None).alias(col_name)
+        for col_name in df.columns
+    ])
 
 
 # ---------------------------------------------------------------------------
@@ -452,12 +451,9 @@ def _validate_format(
 ) -> pl.DataFrame:
     """Validate string format; emit notice for non-null values that fail."""
     col_name = col_def.name
-    non_null = df.filter(pl.col(col_name).is_not_null())
-    if non_null.height == 0:
-        return df
-
-    invalid_count = non_null.select(
-        (~pl.col(col_name).str.contains(pattern.pattern)).sum()
+    col = pl.col(col_name)
+    invalid_count = df.select(
+        (col.is_not_null() & ~col.str.contains(pattern.pattern)).sum()
     ).item()
     if invalid_count > 0:
         notices.append(Notice(
@@ -519,19 +515,17 @@ def _check_numeric_constraint(
     if not isinstance(constraint, NumericConstraint):
         return
 
-    non_null = df.filter(pl.col(col_name).is_not_null())
-    if non_null.height == 0:
-        return
-
+    col = pl.col(col_name)
     if constraint == NumericConstraint.NON_NEGATIVE:
-        bad = non_null.filter(pl.col(col_name) < 0).height
+        bad_expr = (col.is_not_null() & (col < 0)).sum()
     elif constraint == NumericConstraint.POSITIVE:
-        bad = non_null.filter(pl.col(col_name) <= 0).height
+        bad_expr = (col.is_not_null() & (col <= 0)).sum()
     elif constraint == NumericConstraint.NON_ZERO:
-        bad = non_null.filter(pl.col(col_name) == 0).height
+        bad_expr = (col.is_not_null() & (col == 0)).sum()
     else:
         return
 
+    bad = df.select(bad_expr).item()
     if bad > 0:
         notices.append(Notice(
             code="number_out_of_range",
@@ -552,12 +546,10 @@ def _check_range(
     min_val: float,
     max_val: float,
 ) -> None:
-    non_null = df.filter(pl.col(col_name).is_not_null())
-    if non_null.height == 0:
-        return
-    out = non_null.filter(
-        (pl.col(col_name) < min_val) | (pl.col(col_name) > max_val)
-    ).height
+    col = pl.col(col_name)
+    out = df.select(
+        (col.is_not_null() & ((col < min_val) | (col > max_val))).sum()
+    ).item()
     if out > 0:
         notices.append(Notice(
             code="number_out_of_range",

@@ -102,9 +102,9 @@ def run(config: ValidationConfig) -> RunResult:
         notices.merge(load_notices)
         logger.info("Stage 2 (load tables):        %.3fs", time.monotonic() - t2)
 
-        # Stage 3: Load-time validation.
+        # Stage 3: Load-time validation (per-table checks in parallel, then FK).
         t3 = time.monotonic()
-        load_val_notices = run_load_validators(feed, table_statuses)
+        load_val_notices = run_load_validators(feed, table_statuses, config.num_threads)
         notices.merge(load_val_notices)
         logger.info("Stage 3 (load validators):    %.3fs", time.monotonic() - t3)
 
