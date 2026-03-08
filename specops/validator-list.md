@@ -54,7 +54,7 @@
 50. ~~RouteNameValidator~~ ✅
 51. ~~ServiceGapValidator~~ ✅
 52. ~~ServiceHasNoActiveDayOfTheWeekValidator~~ ✅
-53. ShapeIncreasingDistanceValidator
+53. ~~ShapeIncreasingDistanceValidator~~ ✅
 54. ShapeToStopMatchingValidator
 55. ShapeUsageValidator
 56. SingleShapePointValidator

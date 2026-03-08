@@ -119,6 +119,7 @@ from gtfs_validator.validators.route_color_contrast import validate_route_color_
 from gtfs_validator.validators.route_name import validate_route_name
 from gtfs_validator.validators.service_gap import validate_service_gap
 from gtfs_validator.validators.service_no_active_day import validate_service_no_active_day
+from gtfs_validator.validators.shape_increasing_distance import validate_shape_increasing_distance
 from gtfs_validator.validators.trip_usage import validate_trip_usage
 
 VALIDATOR_REGISTRY: list[ValidatorEntry] = [
@@ -386,5 +387,10 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="route_name",
         fn=validate_route_name,
         requires=["routes"],
+    ),
+    ValidatorEntry(
+        name="shape_increasing_distance",
+        fn=validate_shape_increasing_distance,
+        requires=["shapes"],
     ),
 ]
