@@ -52,10 +52,12 @@ from gtfs_validator.validators.fare_product_default_rider_categories import (
     validate_fare_product_default_rider_categories,
 )
 from gtfs_validator.validators.feed_contact import validate_feed_contact
+from gtfs_validator.validators.geojson_geometry import validate_geojson_geometry
 from gtfs_validator.validators.feed_expiration_date import validate_feed_expiration_date
 from gtfs_validator.validators.feed_service_date import validate_feed_service_date
 from gtfs_validator.validators.feed_valid_today import validate_feed_valid_today
 from gtfs_validator.validators.pathways import validate_bidirectional_exit_gate
+from gtfs_validator.validators.trip_usage import validate_trip_usage
 
 VALIDATOR_REGISTRY: list[ValidatorEntry] = [
     ValidatorEntry(
@@ -97,6 +99,11 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="date_trips",
         fn=validate_date_trips,
         requires=["trips"],
+    ),
+    ValidatorEntry(
+        name="trip_usage",
+        fn=validate_trip_usage,
+        requires=["trips", "stop_times"],
     ),
     ValidatorEntry(
         name="duplicate_fare_media",
@@ -162,5 +169,10 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="feed_valid_today",
         fn=validate_feed_valid_today,
         requires=["feed_info"],
+    ),
+    ValidatorEntry(
+        name="geojson_geometry",
+        fn=validate_geojson_geometry,
+        requires=["locations_geojson"],
     ),
 ]
