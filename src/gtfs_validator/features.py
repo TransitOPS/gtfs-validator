@@ -84,7 +84,7 @@ FIELD_BASED_FEATURES: list[tuple[str, list[_FieldCheck], str]] = [
         "Base Add-ons",
     ),
     (
-        "Traversal Time",
+        "In-station Traversal Time",
         [("pathways.txt", "traversal_time")],
         "Pathways",
     ),
