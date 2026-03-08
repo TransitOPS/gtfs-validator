@@ -57,7 +57,7 @@
 53. ~~ShapeIncreasingDistanceValidator~~ ✅
 54. ~~ShapeToStopMatchingValidator~~ ✅
 55. ~~ShapeUsageValidator~~ ✅
-56. SingleShapePointValidator
+56. ~~SingleShapePointValidator~~ ✅
 57. StopAccessValidator
 58. StopNameValidator
 59. StopRequiredLocationValidator

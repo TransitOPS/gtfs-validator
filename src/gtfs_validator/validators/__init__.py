@@ -122,6 +122,7 @@ from gtfs_validator.validators.service_no_active_day import validate_service_no_
 from gtfs_validator.validators.shape_increasing_distance import validate_shape_increasing_distance
 from gtfs_validator.validators.shape_to_stop_matching import validate_shape_to_stop_matching
 from gtfs_validator.validators.shape_usage import validate_shape_usage
+from gtfs_validator.validators.single_shape_point import validate_single_shape_point
 from gtfs_validator.validators.trip_usage import validate_trip_usage
 
 VALIDATOR_REGISTRY: list[ValidatorEntry] = [
@@ -404,5 +405,10 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="shape_usage",
         fn=validate_shape_usage,
         requires=["shapes", "trips"],
+    ),
+    ValidatorEntry(
+        name="single_shape_point",
+        fn=validate_single_shape_point,
+        requires=["shapes"],
     ),
 ]
