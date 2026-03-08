@@ -43,7 +43,7 @@
 39. ~~ParentStationValidator~~ ✅
 40. ~~PathwayDanglingGenericNodeValidator~~ ✅
 41. ~~PathwayEndpointTypeValidator~~ ✅
-42. PathwayLoopValidator
+42. ~~PathwayLoopValidator~~ ✅
 43. PathwayReachableLocationValidator
 44. PathwayStopAccessValidator
 45. PickupBookingRuleIdValidator

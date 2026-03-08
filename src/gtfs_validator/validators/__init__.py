@@ -92,6 +92,7 @@ from gtfs_validator.validators.pathway_dangling_generic_node import (
 from gtfs_validator.validators.pathway_endpoint_type import (
     validate_pathway_endpoint_type,
 )
+from gtfs_validator.validators.pathway_loop import validate_pathway_loop
 from gtfs_validator.validators.geojson_geometry import validate_geojson_geometry
 from gtfs_validator.validators.feed_expiration_date import validate_feed_expiration_date
 from gtfs_validator.validators.feed_service_date import validate_feed_service_date
@@ -312,5 +313,10 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="pathway_endpoint_type",
         fn=validate_pathway_endpoint_type,
         requires=["pathways", "stops"],
+    ),
+    ValidatorEntry(
+        name="pathway_loop",
+        fn=validate_pathway_loop,
+        requires=["pathways"],
     ),
 ]
