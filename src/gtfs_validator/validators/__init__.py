@@ -51,6 +51,9 @@ from gtfs_validator.validators.fare_transfer_rule_transfer_count import (
 from gtfs_validator.validators.fare_product_default_rider_categories import (
     validate_fare_product_default_rider_categories,
 )
+from gtfs_validator.validators.fare_leg_rule_network_id_foreign_key import (
+    validate_fare_leg_rule_network_id_foreign_key,
+)
 from gtfs_validator.validators.feed_contact import validate_feed_contact
 from gtfs_validator.validators.geojson_geometry import validate_geojson_geometry
 from gtfs_validator.validators.feed_expiration_date import validate_feed_expiration_date
@@ -129,6 +132,11 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="fare_leg_join_rule",
         fn=validate_fare_leg_join_rule,
         requires=["fare_leg_join_rules"],
+    ),
+    ValidatorEntry(
+        name="fare_leg_rule_network_id_foreign_key",
+        fn=validate_fare_leg_rule_network_id_foreign_key,
+        requires=["fare_leg_rules"],
     ),
     ValidatorEntry(
         name="fare_media_name",
