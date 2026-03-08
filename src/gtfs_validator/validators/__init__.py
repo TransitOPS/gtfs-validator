@@ -81,6 +81,7 @@ from gtfs_validator.validators.missing_stops_file import validate_missing_stops_
 from gtfs_validator.validators.missing_level_id import validate_missing_level_id
 from gtfs_validator.validators.missing_trip_edge import validate_missing_trip_edge
 from gtfs_validator.validators.network_id_consistency import validate_network_id_consistency
+from gtfs_validator.validators.route_agency_id import validate_route_agency_id
 from gtfs_validator.validators.overlapping_frequency import validate_overlapping_frequency
 from gtfs_validator.validators.overlapping_pickup_drop_off_zone import (
     validate_overlapping_pickup_drop_off_zone,
@@ -301,6 +302,11 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="network_id_consistency",
         fn=validate_network_id_consistency,
         requires=["routes"],
+    ),
+    ValidatorEntry(
+        name="route_agency_id",
+        fn=validate_route_agency_id,
+        requires=["agency", "routes"],
     ),
     ValidatorEntry(
         name="overlapping_frequency",

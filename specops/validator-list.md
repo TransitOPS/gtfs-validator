@@ -49,7 +49,7 @@
 45. ~~PickupBookingRuleIdValidator~~ ✅
 46. ~~PickupDropOffTypeValidator~~ ✅
 47. ~~PickupDropOffWindowValidator~~ ✅
-48. RouteAgencyIdValidator
+48. ~~RouteAgencyIdValidator~~ ✅
 49. RouteColorContrastValidator
 50. RouteNameValidator
 51. ServiceGapValidator
