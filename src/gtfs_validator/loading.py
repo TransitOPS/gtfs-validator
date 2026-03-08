@@ -211,6 +211,9 @@ def _parse_csv(
     # Whitespace trimming and null normalisation.
     raw_df = _normalise_strings(raw_df, table_def, notices)
 
+    # Inject csv_row_number (1-based, header = row 1 so data starts at 2).
+    raw_df = raw_df.with_row_index(name="csv_row_number", offset=2)
+
     # Type casting.
     raw_df = _cast_columns(raw_df, table_def, notices)
 
