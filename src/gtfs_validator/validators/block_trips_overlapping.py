@@ -56,7 +56,7 @@ def validate_block_trips_overlapping(
 
     # 5. Join intervals onto blocked trips
     trip_data = blocked_trips.select(
-        "trip_id", "block_id", "service_id", "csv_row_number",
+        "trip_id", "block_id", "service_id",
     ).join(intervals, on="trip_id", how="inner")
 
     # 6. Filter out trips where any time bound is null
@@ -109,10 +109,8 @@ def validate_block_trips_overlapping(
                     code="block_trips_with_overlapping_stop_times",
                     severity=Severity.ERROR,
                     fields={
-                        "csv_row_number_a": ri["csv_row_number"],
                         "trip_id_a": ri["trip_id"],
                         "service_id_a": ri["service_id"],
-                        "csv_row_number_b": rj["csv_row_number"],
                         "trip_id_b": rj["trip_id"],
                         "service_id_b": rj["service_id"],
                         "block_id": block_id_str,
