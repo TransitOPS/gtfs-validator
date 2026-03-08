@@ -60,7 +60,7 @@
 56. ~~SingleShapePointValidator~~ ✅
 57. ~~StopAccessValidator~~ ✅
 58. ~~StopNameValidator~~ ✅
-59. StopRequiredLocationValidator
+59. ~~StopRequiredLocationValidator~~ ✅
 60. StopTimeArrivalAndDepartureTimeValidator
 61. StopTimeIncreasingDistanceValidator
 62. StopTimeTravelSpeedValidator
