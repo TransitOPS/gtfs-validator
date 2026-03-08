@@ -69,7 +69,7 @@
 65. ~~StopTimesShapeDistTraveledPresenceValidator~~ ✅
 66. ~~StopTimesTripBlockOrderValidator~~ ✅
 67. ~~StopZoneIdValidator~~ ✅
-68. TimeframeOverlapValidator
+68. ~~TimeframeOverlapValidator~~ ✅
 69. TimeframeServiceIdForeignKeyValidator
 70. TimeframeStartAndEndTimeValidator
 71. TimepointTimeValidator

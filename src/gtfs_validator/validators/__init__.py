@@ -150,6 +150,7 @@ from gtfs_validator.validators.stop_times_trip_block_order import (
     validate_stop_times_trip_block_order,
 )
 from gtfs_validator.validators.stop_zone_id import validate_stop_zone_id
+from gtfs_validator.validators.timeframe_overlap import validate_timeframe_overlap
 from gtfs_validator.validators.trip_usage import validate_trip_usage
 
 VALIDATOR_REGISTRY: list[ValidatorEntry] = [
@@ -492,5 +493,10 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="stop_zone_id",
         fn=validate_stop_zone_id,
         requires=["stops", "fare_rules", "stop_times", "trips"],
+    ),
+    ValidatorEntry(
+        name="timeframe_overlap",
+        fn=validate_timeframe_overlap,
+        requires=["timeframes"],
     ),
 ]
