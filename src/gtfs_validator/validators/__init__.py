@@ -42,6 +42,9 @@ from gtfs_validator.validators.expired_calendar import validate_expired_calendar
 from gtfs_validator.validators.fare_attribute_agency_id import validate_fare_attribute_agency_id
 from gtfs_validator.validators.fare_leg_join_rule import validate_fare_leg_join_rule
 from gtfs_validator.validators.fare_media_name import validate_fare_media_name
+from gtfs_validator.validators.fare_transfer_rule_duration_limit_type import (
+    validate_fare_transfer_rule_duration_limit_type,
+)
 from gtfs_validator.validators.fare_product_default_rider_categories import (
     validate_fare_product_default_rider_categories,
 )
@@ -122,5 +125,10 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="fare_product_default_rider_categories",
         fn=validate_fare_product_default_rider_categories,
         requires=["fare_products", "rider_categories"],
+    ),
+    ValidatorEntry(
+        name="fare_transfer_rule_duration_limit_type",
+        fn=validate_fare_transfer_rule_duration_limit_type,
+        requires=["fare_transfer_rules"],
     ),
 ]
