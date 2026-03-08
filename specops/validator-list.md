@@ -55,7 +55,7 @@
 51. ~~ServiceGapValidator~~ ✅
 52. ~~ServiceHasNoActiveDayOfTheWeekValidator~~ ✅
 53. ~~ShapeIncreasingDistanceValidator~~ ✅
-54. ShapeToStopMatchingValidator
+54. ~~ShapeToStopMatchingValidator~~ ✅
 55. ShapeUsageValidator
 56. SingleShapePointValidator
 57. StopAccessValidator

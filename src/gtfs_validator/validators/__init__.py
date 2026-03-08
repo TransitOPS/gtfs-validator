@@ -120,6 +120,7 @@ from gtfs_validator.validators.route_name import validate_route_name
 from gtfs_validator.validators.service_gap import validate_service_gap
 from gtfs_validator.validators.service_no_active_day import validate_service_no_active_day
 from gtfs_validator.validators.shape_increasing_distance import validate_shape_increasing_distance
+from gtfs_validator.validators.shape_to_stop_matching import validate_shape_to_stop_matching
 from gtfs_validator.validators.trip_usage import validate_trip_usage
 
 VALIDATOR_REGISTRY: list[ValidatorEntry] = [
@@ -392,5 +393,10 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="shape_increasing_distance",
         fn=validate_shape_increasing_distance,
         requires=["shapes"],
+    ),
+    ValidatorEntry(
+        name="shape_to_stop_matching",
+        fn=validate_shape_to_stop_matching,
+        requires=["stops", "trips", "routes", "stop_times", "shapes"],
     ),
 ]
