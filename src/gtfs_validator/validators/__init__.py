@@ -134,6 +134,9 @@ from gtfs_validator.validators.shape_increasing_distance import validate_shape_i
 from gtfs_validator.validators.shape_to_stop_matching import validate_shape_to_stop_matching
 from gtfs_validator.validators.shape_usage import validate_shape_usage
 from gtfs_validator.validators.single_shape_point import validate_single_shape_point
+from gtfs_validator.validators.stop_time_travel_speed import (
+    validate_stop_time_travel_speed,
+)
 from gtfs_validator.validators.trip_usage import validate_trip_usage
 
 VALIDATOR_REGISTRY: list[ValidatorEntry] = [
@@ -446,5 +449,10 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="single_shape_point",
         fn=validate_single_shape_point,
         requires=["shapes"],
+    ),
+    ValidatorEntry(
+        name="stop_time_travel_speed",
+        fn=validate_stop_time_travel_speed,
+        requires=["stop_times", "trips", "routes", "stops"],
     ),
 ]
