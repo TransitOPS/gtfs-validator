@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 import polars as pl
 
@@ -12,6 +12,18 @@ from gtfs_validator.notices import Notice, Severity
 
 
 MAX_GAP_DAYS: int = 13  # Gap must be strictly greater than this to emit a notice
+
+
+def _parse_date(value: "date | str") -> date:
+    """Convert a GTFS date value to a Python date.
+
+    GTFS date columns are stored as Utf8 strings in the format YYYYMMDD.
+    If the value is already a date, return it unchanged.
+    """
+    if isinstance(value, date):
+        return value
+    # GTFS dates are 8-digit strings: YYYYMMDD
+    return datetime.strptime(value, "%Y%m%d").date()
 
 
 @dataclass
@@ -143,7 +155,12 @@ def _build_service_intervals(
         )
         if sid not in intervals:
             intervals[sid] = []
-        _apply_calendar_row(row["start_date"], row["end_date"], pattern, intervals[sid])
+        _apply_calendar_row(
+            _parse_date(row["start_date"]),
+            _parse_date(row["end_date"]),
+            pattern,
+            intervals[sid],
+        )
 
     # Phase 2: calendar_dates.txt exceptions (only for service_ids seen in calendar)
     if calendar_dates is not None and not calendar_dates.is_empty():
@@ -152,9 +169,9 @@ def _build_service_intervals(
             if sid not in intervals:
                 continue  # service not driven by calendar.txt — skip
             if row["exception_type"] == 1:   # SERVICE_ADDED
-                _add_date(row["date"], intervals[sid])
+                _add_date(_parse_date(row["date"]), intervals[sid])
             elif row["exception_type"] == 2:  # SERVICE_REMOVED
-                _remove_date(row["date"], intervals[sid])
+                _remove_date(_parse_date(row["date"]), intervals[sid])
 
     return intervals
 
