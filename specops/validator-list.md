@@ -67,7 +67,7 @@
 63. ~~StopTimesGeographyIdPresenceValidator~~ ✅
 64. ~~StopTimesRecordValidator~~ ✅
 65. ~~StopTimesShapeDistTraveledPresenceValidator~~ ✅
-66. StopTimesTripBlockOrderValidator
+66. ~~StopTimesTripBlockOrderValidator~~ ✅
 67. StopZoneIdValidator
 68. TimeframeOverlapValidator
 69. TimeframeServiceIdForeignKeyValidator
