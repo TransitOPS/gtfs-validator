@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import dataclasses
 import logging
+import pathlib
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+import polars as pl
 
 from gtfs_validator.config import RunResult, ValidationConfig
 from gtfs_validator.context import ValidationContext
@@ -17,6 +21,50 @@ from gtfs_validator.report import generate_reports
 from gtfs_validator.validators import VALIDATOR_REGISTRY, ValidatorEntry
 
 logger = logging.getLogger(__name__)
+
+
+def _load_timezone_country_map() -> dict[str, str]:
+    """Build a timezone -> ISO 3166-1 alpha-2 country code map from zone.tab.
+
+    Falls back to an empty dict if the file is not available on the system.
+    """
+    candidates = [
+        pathlib.Path("/usr/share/zoneinfo/zone1970.tab"),
+        pathlib.Path("/usr/share/zoneinfo/zone.tab"),
+    ]
+    for path in candidates:
+        if path.exists():
+            mapping: dict[str, str] = {}
+            for line in path.read_text(encoding="utf-8").splitlines():
+                if line.startswith("#") or not line.strip():
+                    continue
+                parts = line.split("\t")
+                if len(parts) >= 3:
+                    country = parts[0].strip()
+                    tz_name = parts[2].strip()
+                    # zone1970.tab may list multiple countries; take the first.
+                    if tz_name not in mapping:
+                        mapping[tz_name] = country
+            return mapping
+    return {}
+
+
+# Loaded once at import time; the system file rarely changes.
+_TZ_TO_COUNTRY: dict[str, str] = _load_timezone_country_map()
+
+
+def infer_country_code(feed: dict[str, pl.DataFrame]) -> str:
+    """Infer ISO 3166-1 alpha-2 country code from agency_timezone in agency.txt.
+
+    Returns "ZZ" if the timezone cannot be mapped to a country.
+    """
+    ag = feed.get("agency.txt")
+    if ag is None or ag.height == 0 or "agency_timezone" not in ag.columns:
+        return "ZZ"
+    tz_value = ag["agency_timezone"][0]
+    if tz_value is None:
+        return "ZZ"
+    return _TZ_TO_COUNTRY.get(str(tz_value), "ZZ")
 
 
 def run(config: ValidationConfig) -> RunResult:
@@ -55,9 +103,20 @@ def run(config: ValidationConfig) -> RunResult:
         load_val_notices = run_load_validators(feed, table_statuses)
         notices.merge(load_val_notices)
 
+        # Resolve effective country code: infer from agency_timezone when not
+        # explicitly provided (i.e., when the placeholder "ZZ" is still set).
+        effective_country_code = config.country_code
+        if effective_country_code == "ZZ":
+            effective_country_code = infer_country_code(feed)
+        effective_config = (
+            config
+            if effective_country_code == config.country_code
+            else dataclasses.replace(config, country_code=effective_country_code)
+        )
+
         # Stage 4: Multi-file validators.
         ctx = ValidationContext(
-            country_code=config.country_code,
+            country_code=effective_country_code,
             date_for_validation=config.date_for_validation,
         )
         _run_validators(feed, table_statuses, ctx, notices, config.num_threads)
@@ -67,7 +126,7 @@ def run(config: ValidationConfig) -> RunResult:
 
         # Stage 6: Report generation.
         elapsed = time.monotonic() - start_time
-        generate_reports(config, feed, notices, features, elapsed)
+        generate_reports(effective_config, feed, notices, features, elapsed)
 
     finally:
         # Stage 7: Cleanup.
