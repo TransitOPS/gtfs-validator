@@ -64,6 +64,9 @@ from gtfs_validator.validators.inconsistent_route_type_for_in_seat_transfer impo
 from gtfs_validator.validators.location_has_stop_times import (
     validate_location_has_stop_times,
 )
+from gtfs_validator.validators.location_type_single_entity import (
+    validate_location_type_single_entity,
+)
 from gtfs_validator.validators.location_id_foreign_key import (
     validate_location_id_foreign_key,
 )
@@ -222,5 +225,10 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="location_id_foreign_key",
         fn=validate_location_id_foreign_key,
         requires=["stop_times", "locations_geojson"],
+    ),
+    ValidatorEntry(
+        name="location_type_single_entity",
+        fn=validate_location_type_single_entity,
+        requires=["stops"],
     ),
 ]
