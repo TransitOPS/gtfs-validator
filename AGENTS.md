@@ -144,6 +144,26 @@ Before finishing:
 - Run tests and static checks.
 - Summarize behavioral impact and any unresolved risks.
 
+## LLM-Assisted Validator Authoring
+
+Post-migration, use LLM generation to accelerate net-new Python validator additions
+and targeted updates to existing Python validators.
+Treat generated code as untrusted until tests and checks pass.
+
+Required workflow:
+- Start from the template in `specops/llm-validator-authoring.md`.
+- Provide the model with exact Python source context (related validators, tests, notice contracts).
+- Require strict output scope: one validator concern, one registry update, matching tests.
+- Require no new notice codes/severities unless the spec explicitly authorizes it.
+- Require deterministic, pure validator functions with no I/O.
+- Require explicit assumptions when rule intent is ambiguous.
+
+Acceptance gate for generated changes:
+- `uv run pytest -q`
+- `uv run ruff check .`
+- `uv run mypy src` (or `uv run pyright`)
+- Manual reviewer confirms behavior matches existing contracts and output shape.
+
 ## Definition of Done
 
 A change is complete only when:
