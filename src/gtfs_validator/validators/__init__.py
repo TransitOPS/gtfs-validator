@@ -38,6 +38,7 @@ from gtfs_validator.validators.continuous_pickup_drop_off import validate_contin
 from gtfs_validator.validators.date_trips import validate_date_trips
 from gtfs_validator.validators.duplicate_fare_media import validate_duplicate_fare_media
 from gtfs_validator.validators.duplicate_route_name import validate_duplicate_route_name
+from gtfs_validator.validators.expired_calendar import validate_expired_calendar
 from gtfs_validator.validators.pathways import validate_bidirectional_exit_gate
 
 VALIDATOR_REGISTRY: list[ValidatorEntry] = [
@@ -90,5 +91,10 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="duplicate_route_name",
         fn=validate_duplicate_route_name,
         requires=["routes"],
+    ),
+    ValidatorEntry(
+        name="expired_calendar",
+        fn=validate_expired_calendar,
+        requires=["calendar", "calendar_dates"],
     ),
 ]
