@@ -52,7 +52,7 @@
 48. ~~RouteAgencyIdValidator~~ ✅
 49. ~~RouteColorContrastValidator~~ ✅
 50. ~~RouteNameValidator~~ ✅
-51. ServiceGapValidator
+51. ~~ServiceGapValidator~~ ✅
 52. ServiceHasNoActiveDayOfTheWeekValidator
 53. ShapeIncreasingDistanceValidator
 54. ShapeToStopMatchingValidator
