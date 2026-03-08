@@ -36,7 +36,7 @@
 32. ~~MissingFeedInfoValidator~~ ✅
 33. ~~MissingLevelIdValidator~~ ✅
 34. ~~MissingStopsFileValidator~~ ✅
-35. MissingTripEdgeValidator
+35. ~~MissingTripEdgeValidator~~ ✅
 36. NetworkIdConsistencyValidator
 37. OverlappingFrequencyValidator
 38. OverlappingPickupDropOffZoneValidator
