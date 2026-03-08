@@ -4,7 +4,7 @@
 
 1. ~~AgencyConsistencyValidator~~ ✅
 2. ~~AttributionWithoutRoleValidator~~ ✅
-3. BidirectionalExitGateValidator
+3. ~~BidirectionalExitGateValidator~~ ✅
 4. BikesAllowanceValidator
 5. BlockTripsWithOverlappingStopTimesValidator
 6. BookingRulesEntityValidator

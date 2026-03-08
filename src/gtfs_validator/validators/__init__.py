@@ -31,6 +31,7 @@ class ValidatorEntry:
 
 from gtfs_validator.validators.agency_consistency import validate_agency_consistency
 from gtfs_validator.validators.attribution import validate_attribution_without_role
+from gtfs_validator.validators.pathways import validate_bidirectional_exit_gate
 
 VALIDATOR_REGISTRY: list[ValidatorEntry] = [
     ValidatorEntry(
@@ -42,5 +43,10 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="attribution_without_role",
         fn=validate_attribution_without_role,
         requires=["attributions"],
+    ),
+    ValidatorEntry(
+        name="bidirectional_exit_gate",
+        fn=validate_bidirectional_exit_gate,
+        requires=["pathways"],
     ),
 ]
