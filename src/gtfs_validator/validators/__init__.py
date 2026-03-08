@@ -137,6 +137,9 @@ from gtfs_validator.validators.single_shape_point import validate_single_shape_p
 from gtfs_validator.validators.stop_time_travel_speed import (
     validate_stop_time_travel_speed,
 )
+from gtfs_validator.validators.stop_times_geography_id_presence import (
+    validate_stop_times_geography_id_presence,
+)
 from gtfs_validator.validators.trip_usage import validate_trip_usage
 
 VALIDATOR_REGISTRY: list[ValidatorEntry] = [
@@ -454,5 +457,10 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="stop_time_travel_speed",
         fn=validate_stop_time_travel_speed,
         requires=["stop_times", "trips", "routes", "stops"],
+    ),
+    ValidatorEntry(
+        name="stop_times_geography_id_presence",
+        fn=validate_stop_times_geography_id_presence,
+        requires=["stop_times"],
     ),
 ]
