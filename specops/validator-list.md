@@ -27,7 +27,7 @@
 23. ~~GtfsFareLegRuleNetworkIdForeignKeyValidator~~ ✅
 24. ~~GtfsTripServiceIdForeignKeyValidator~~ ✅
 25. ~~InconsistentRouteTypeForBlockIdValidator~~ ✅
-26. InconsistentRouteTypeForInSeatTransferValidator
+26. ~~InconsistentRouteTypeForInSeatTransferValidator~~ ✅
 27. LocationHasStopTimesValidator
 28. LocationIdForeignKeyValidator
 29. LocationTypeSingleEntityValidator

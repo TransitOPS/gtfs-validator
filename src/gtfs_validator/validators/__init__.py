@@ -58,6 +58,9 @@ from gtfs_validator.validators.feed_contact import validate_feed_contact
 from gtfs_validator.validators.inconsistent_route_type_for_block_id import (
     validate_inconsistent_route_type_for_block_id,
 )
+from gtfs_validator.validators.inconsistent_route_type_for_in_seat_transfer import (
+    validate_inconsistent_route_type_for_in_seat_transfer,
+)
 from gtfs_validator.validators.geojson_geometry import validate_geojson_geometry
 from gtfs_validator.validators.feed_expiration_date import validate_feed_expiration_date
 from gtfs_validator.validators.feed_service_date import validate_feed_service_date
@@ -198,5 +201,10 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="inconsistent_route_type_for_block_id",
         fn=validate_inconsistent_route_type_for_block_id,
         requires=["trips", "routes"],
+    ),
+    ValidatorEntry(
+        name="inconsistent_route_type_for_in_seat_transfer",
+        fn=validate_inconsistent_route_type_for_in_seat_transfer,
+        requires=["transfers", "routes"],
     ),
 ]
