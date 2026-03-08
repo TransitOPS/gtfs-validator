@@ -5,7 +5,7 @@
 5. GTFS input path format differs: old `gtfsInput` = `file:///Users/ryanmahoney/Documents/gtfs-validator/out/gtfs-mbta.zip`, new `gtfsInput` = `out/gtfs-mbta.zip`. ✅
 6. Output report filenames differ in summary metadata: old points to `report.json`/`system_errors.json`/`report.html`, new points to `report-new.json`/`system_errors-new.json`/`report-new.html`. ❓
 7. Total notice count differs: old = 859, new = 871. ❓
-8. Notice group count differs: old = 12 groups, new = 16 groups.
+8. Notice group count differs: old = 12 groups, new = 16 groups. ❓
 9. `summary.counts.Shapes` differs: old = 1119 (distinct shape IDs), new = 384403 (appears to be raw shape row count).
 10. `summary.feedInfo` formatting differs: old uses normalized values (`feedLanguage` = `English`, ISO-like dates), new uses raw GTFS values (`feedLanguage` = `EN`, dates like `20260227`).
 11. `summary.agencies` content differs: old includes extra keys (`email`, `timezone`), new includes only `name`, `url`, `phone` for this feed.
