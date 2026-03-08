@@ -78,7 +78,7 @@
 74. ~~TransfersInSeatTransferTypeValidator~~ ✅
 75. ~~TransfersStopTypeValidator~~ ✅
 76. ~~TransfersTripReferenceValidator~~ ✅
-77. TranslationFieldAndReferenceValidator
+77. ~~TranslationFieldAndReferenceValidator~~ ✅
 78. TripAndShapeDistanceValidator
 79. TripUsabilityValidator
 80. TripUsageValidator

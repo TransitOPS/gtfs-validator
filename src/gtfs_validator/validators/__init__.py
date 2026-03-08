@@ -171,6 +171,9 @@ from gtfs_validator.validators.timeframe_start_and_end_time import (
     validate_timeframe_start_and_end_time,
 )
 from gtfs_validator.validators.timepoint_time import validate_timepoint_time
+from gtfs_validator.validators.translation_field_and_reference import (
+    validate_translation_field_and_reference,
+)
 from gtfs_validator.validators.trip_usage import validate_trip_usage
 
 VALIDATOR_REGISTRY: list[ValidatorEntry] = [
@@ -558,5 +561,10 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="timepoint_time",
         fn=validate_timepoint_time,
         requires=["stop_times"],
+    ),
+    ValidatorEntry(
+        name="translation_field_and_reference",
+        fn=validate_translation_field_and_reference,
+        requires=["translations"],
     ),
 ]
