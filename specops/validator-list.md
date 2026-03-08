@@ -33,7 +33,7 @@
 29. ~~LocationTypeSingleEntityValidator~~ ✅
 30. ~~MatchingFeedAndAgencyLangValidator~~ ✅
 31. ~~MissingCalendarAndCalendarDateValidator~~ ✅
-32. MissingFeedInfoValidator
+32. ~~MissingFeedInfoValidator~~ ✅
 33. MissingLevelIdValidator
 34. MissingStopsFileValidator
 35. MissingTripEdgeValidator

@@ -76,6 +76,7 @@ from gtfs_validator.validators.matching_feed_and_agency_lang import (
 from gtfs_validator.validators.missing_calendar_and_calendar_date import (
     validate_missing_calendar_and_calendar_date,
 )
+from gtfs_validator.validators.missing_feed_info import validate_missing_feed_info
 from gtfs_validator.validators.geojson_geometry import validate_geojson_geometry
 from gtfs_validator.validators.feed_expiration_date import validate_feed_expiration_date
 from gtfs_validator.validators.feed_service_date import validate_feed_service_date
@@ -245,6 +246,11 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
     ValidatorEntry(
         name="missing_calendar_and_calendar_date",
         fn=validate_missing_calendar_and_calendar_date,
+        requires=[],
+    ),
+    ValidatorEntry(
+        name="missing_feed_info",
+        fn=validate_missing_feed_info,
         requires=[],
     ),
 ]
