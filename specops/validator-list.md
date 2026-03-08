@@ -34,7 +34,7 @@
 30. ~~MatchingFeedAndAgencyLangValidator~~ ✅
 31. ~~MissingCalendarAndCalendarDateValidator~~ ✅
 32. ~~MissingFeedInfoValidator~~ ✅
-33. MissingLevelIdValidator
+33. ~~MissingLevelIdValidator~~ ✅
 34. MissingStopsFileValidator
 35. MissingTripEdgeValidator
 36. NetworkIdConsistencyValidator
