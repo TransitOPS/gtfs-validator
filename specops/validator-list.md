@@ -61,7 +61,7 @@
 57. ~~StopAccessValidator~~ ✅
 58. ~~StopNameValidator~~ ✅
 59. ~~StopRequiredLocationValidator~~ ✅
-60. StopTimeArrivalAndDepartureTimeValidator
+60. ~~StopTimeArrivalAndDepartureTimeValidator~~ ✅
 61. StopTimeIncreasingDistanceValidator
 62. StopTimeTravelSpeedValidator
 63. StopTimesGeographyIdPresenceValidator

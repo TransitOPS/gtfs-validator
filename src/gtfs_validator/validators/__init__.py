@@ -80,6 +80,9 @@ from gtfs_validator.validators.missing_feed_info import validate_missing_feed_in
 from gtfs_validator.validators.missing_stops_file import validate_missing_stops_file
 from gtfs_validator.validators.missing_level_id import validate_missing_level_id
 from gtfs_validator.validators.missing_trip_edge import validate_missing_trip_edge
+from gtfs_validator.validators.stop_time_arrival_departure import (
+    validate_stop_time_arrival_departure,
+)
 from gtfs_validator.validators.network_id_consistency import validate_network_id_consistency
 from gtfs_validator.validators.route_agency_id import validate_route_agency_id
 from gtfs_validator.validators.overlapping_frequency import validate_overlapping_frequency
@@ -319,6 +322,11 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
     ValidatorEntry(
         name="missing_trip_edge",
         fn=validate_missing_trip_edge,
+        requires=["stop_times"],
+    ),
+    ValidatorEntry(
+        name="stop_time_arrival_departure",
+        fn=validate_stop_time_arrival_departure,
         requires=["stop_times"],
     ),
     ValidatorEntry(
