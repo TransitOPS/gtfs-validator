@@ -15,14 +15,16 @@ def validate_trip_usage(
     """Warn when a trip in trips.txt has no corresponding records in stop_times.txt."""
     if "trips" not in feed or feed["trips"].is_empty():
         return []
+    if "stop_times" not in feed:
+        return []
 
     trips_df = feed["trips"]
 
     # Get set of used trip_ids from stop_times
-    if "stop_times" in feed and not feed["stop_times"].is_empty():
+    if not feed["stop_times"].is_empty():
         used_trip_ids = feed["stop_times"]["trip_id"].unique()
     else:
-        # No stop_times means all trips are unused
+        # Empty stop_times means all trips are unused.
         used_trip_ids = pl.Series("trip_id", [], dtype=pl.String)
 
     # Find unused trips (trip_id not in stop_times)

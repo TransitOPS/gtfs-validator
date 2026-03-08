@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import date
 
 import polars as pl
-import pytest
 
 from gtfs_validator.context import ValidationContext
 from gtfs_validator.notices import Severity
@@ -102,7 +101,9 @@ def test_unused_trip_emits_notice() -> None:
 
 def test_trips_absent_no_notice() -> None:
     """No trips key in feed → no notices."""
-    feed: dict[str, pl.DataFrame] = {"stop_times": make_stop_times(["t0"])["stop_times"]}
+    feed: dict[str, pl.DataFrame] = {
+        "stop_times": make_stop_times(["t0"])["stop_times"]
+    }
     notices = validate_trip_usage(feed, CTX)
     assert notices == []
 
@@ -124,14 +125,12 @@ def test_trips_empty_no_notice() -> None:
     assert notices == []
 
 
-def test_stop_times_absent_all_trips_unused() -> None:
-    """No stop_times key → all trips are unused."""
+def test_stop_times_absent_no_notice() -> None:
+    """No stop_times key → no notices (validator is dependency-gated in pipeline)."""
     trips = make_trips(["t0", "t1", "t2"])
     feed = trips  # no stop_times
     notices = validate_trip_usage(feed, CTX)
-    assert len(notices) == 3
-    trip_ids = {n.fields["trip_id"] for n in notices}
-    assert trip_ids == {"t0", "t1", "t2"}
+    assert notices == []
 
 
 def test_stop_times_empty_all_trips_unused() -> None:
@@ -199,7 +198,10 @@ def test_notice_fields_are_complete() -> None:
 
 def test_ctx_unused() -> None:
     """ctx value has no effect on the output."""
-    wrong_ctx = ValidationContext(country_code="XX", date_for_validation=date(1900, 1, 1))
+    wrong_ctx = ValidationContext(
+        country_code="XX",
+        date_for_validation=date(1900, 1, 1),
+    )
     trips = make_trips(["unused"])
     stop_times = make_stop_times([])  # empty
     feed = merge_feed(trips, stop_times)
