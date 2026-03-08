@@ -52,6 +52,7 @@ from gtfs_validator.validators.fare_product_default_rider_categories import (
     validate_fare_product_default_rider_categories,
 )
 from gtfs_validator.validators.feed_contact import validate_feed_contact
+from gtfs_validator.validators.feed_expiration_date import validate_feed_expiration_date
 from gtfs_validator.validators.pathways import validate_bidirectional_exit_gate
 
 VALIDATOR_REGISTRY: list[ValidatorEntry] = [
@@ -143,6 +144,11 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
     ValidatorEntry(
         name="feed_contact",
         fn=validate_feed_contact,
+        requires=["feed_info"],
+    ),
+    ValidatorEntry(
+        name="feed_expiration_date",
+        fn=validate_feed_expiration_date,
         requires=["feed_info"],
     ),
 ]
