@@ -13,6 +13,13 @@ def _is_blank(col: str) -> pl.Expr:
     return pl.col(col).is_null() | (pl.col(col).str.strip_chars() == "")
 
 
+def _is_blank_or_absent(col: str, df: pl.DataFrame) -> pl.Expr:
+    """Return a Polars expression that is True when the column is absent or blank."""
+    if col not in df.columns:
+        return pl.lit(True)
+    return _is_blank(col)
+
+
 def validate_feed_contact(
     feed: dict[str, pl.DataFrame],
     ctx: ValidationContext,
@@ -24,7 +31,10 @@ def validate_feed_contact(
     df = feed["feed_info"]
     notices: list[Notice] = []
 
-    violating = df.filter(_is_blank("feed_contact_email") & _is_blank("feed_contact_url"))
+    violating = df.filter(
+        _is_blank_or_absent("feed_contact_email", df)
+        & _is_blank_or_absent("feed_contact_url", df)
+    )
 
     for row in violating.iter_rows(named=True):
         notices.append(
