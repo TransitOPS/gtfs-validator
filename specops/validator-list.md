@@ -8,7 +8,7 @@
 4. ~~BikesAllowanceValidator~~ ✅
 5. ~~BlockTripsWithOverlappingStopTimesValidator~~ ✅
 6. ~~BookingRulesEntityValidator~~ ✅
-7. ContinuousPickupDropOffValidator
+7. ~~ContinuousPickupDropOffValidator~~ ✅
 8. DateTripsValidator
 9. DuplicateFareMediaValidator
 10. DuplicateRouteNameValidator

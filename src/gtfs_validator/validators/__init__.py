@@ -34,6 +34,7 @@ from gtfs_validator.validators.attribution import validate_attribution_without_r
 from gtfs_validator.validators.bikes_allowance import validate_bikes_allowance
 from gtfs_validator.validators.block_trips_overlapping import validate_block_trips_overlapping
 from gtfs_validator.validators.booking_rules_entity import validate_booking_rules_entity
+from gtfs_validator.validators.continuous_pickup_drop_off import validate_continuous_pickup_drop_off
 from gtfs_validator.validators.pathways import validate_bidirectional_exit_gate
 
 VALIDATOR_REGISTRY: list[ValidatorEntry] = [
@@ -66,5 +67,10 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="booking_rules_entity",
         fn=validate_booking_rules_entity,
         requires=["booking_rules"],
+    ),
+    ValidatorEntry(
+        name="continuous_pickup_drop_off",
+        fn=validate_continuous_pickup_drop_off,
+        requires=["routes", "trips", "stop_times"],
     ),
 ]
