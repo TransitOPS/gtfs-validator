@@ -72,7 +72,7 @@
 68. ~~TimeframeOverlapValidator~~ ✅
 69. ~~TimeframeServiceIdForeignKeyValidator~~ ✅
 70. ~~TimeframeStartAndEndTimeValidator~~ ✅
-71. TimepointTimeValidator
+71. ~~TimepointTimeValidator~~ ✅
 72. TransferDistanceValidator
 73. TransferStopIdsConditionalValidator
 74. TransfersInSeatTransferTypeValidator

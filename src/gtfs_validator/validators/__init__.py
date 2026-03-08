@@ -157,6 +157,7 @@ from gtfs_validator.validators.timeframe_service_id_foreign_key import (
 from gtfs_validator.validators.timeframe_start_and_end_time import (
     validate_timeframe_start_and_end_time,
 )
+from gtfs_validator.validators.timepoint_time import validate_timepoint_time
 from gtfs_validator.validators.trip_usage import validate_trip_usage
 
 VALIDATOR_REGISTRY: list[ValidatorEntry] = [
@@ -514,5 +515,10 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="timeframe_start_and_end_time",
         fn=validate_timeframe_start_and_end_time,
         requires=["timeframes"],
+    ),
+    ValidatorEntry(
+        name="timepoint_time",
+        fn=validate_timepoint_time,
+        requires=["stop_times"],
     ),
 ]
