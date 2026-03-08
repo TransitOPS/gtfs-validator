@@ -48,6 +48,17 @@ _REQUIRED_TABLES = ["stop_times", "trips", "routes", "stops"]
 # ---------------------------------------------------------------------------
 
 
+def _time_to_seconds(t: str) -> Optional[int]:
+    """Convert a GTFS time string (e.g. ``"25:30:00"``) to seconds since midnight.
+
+    GTFS times may exceed 24 hours.  Returns ``None`` for falsy/empty values.
+    """
+    if not t:
+        return None
+    h, m, s = t.split(":")
+    return int(h) * 3600 + int(m) * 60 + int(s)
+
+
 def get_max_speed_kph(route_type: int) -> float:
     """Return the maximum allowed speed in km/h for *route_type*."""
     return MAX_SPEED_KPH.get(route_type, DEFAULT_MAX_SPEED_KPH)
@@ -313,6 +324,17 @@ def validate_stop_time_travel_speed(
 
     if joined.is_empty():
         return []
+
+    # Convert GTFS time strings (stored as Utf8) to integer seconds-since-midnight
+    # so that arithmetic works correctly.  Columns may be absent if the feed omits them.
+    # Skip conversion if the column is already a numeric type (e.g. in tests).
+    for time_col in ("arrival_time", "departure_time"):
+        if time_col in joined.columns and joined[time_col].dtype == pl.Utf8:
+            joined = joined.with_columns(
+                pl.col(time_col)
+                .map_elements(_time_to_seconds, return_dtype=pl.Int64)
+                .alias(time_col)
+            )
 
     notices: list[Notice] = []
 
