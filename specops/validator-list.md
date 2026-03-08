@@ -38,7 +38,7 @@
 34. ~~MissingStopsFileValidator~~ ✅
 35. ~~MissingTripEdgeValidator~~ ✅
 36. ~~NetworkIdConsistencyValidator~~ ✅
-37. OverlappingFrequencyValidator
+37. ~~OverlappingFrequencyValidator~~ ✅
 38. OverlappingPickupDropOffZoneValidator
 39. ParentStationValidator
 40. PathwayDanglingGenericNodeValidator

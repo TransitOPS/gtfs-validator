@@ -81,6 +81,7 @@ from gtfs_validator.validators.missing_stops_file import validate_missing_stops_
 from gtfs_validator.validators.missing_level_id import validate_missing_level_id
 from gtfs_validator.validators.missing_trip_edge import validate_missing_trip_edge
 from gtfs_validator.validators.network_id_consistency import validate_network_id_consistency
+from gtfs_validator.validators.overlapping_frequency import validate_overlapping_frequency
 from gtfs_validator.validators.geojson_geometry import validate_geojson_geometry
 from gtfs_validator.validators.feed_expiration_date import validate_feed_expiration_date
 from gtfs_validator.validators.feed_service_date import validate_feed_service_date
@@ -276,5 +277,10 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="network_id_consistency",
         fn=validate_network_id_consistency,
         requires=["routes"],
+    ),
+    ValidatorEntry(
+        name="overlapping_frequency",
+        fn=validate_overlapping_frequency,
+        requires=["frequencies"],
     ),
 ]
