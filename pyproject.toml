@@ -1,0 +1,47 @@
+[project]
+name = "gtfs-validator"
+version = "0.1.0"
+description = "GTFS feed validator using Python and Polars"
+requires-python = ">=3.12"
+dependencies = [
+    "polars>=1.0",
+    "click>=8.0",
+    "jinja2>=3.0",
+    "httpx>=0.27",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.8",
+    "mypy>=1.11",
+]
+
+[project.scripts]
+gtfs-validator = "gtfs_validator.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gtfs_validator"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["gtfs_validator"]
+mypy_path = "src"
+
+[tool.uv]
+default-groups = ["dev"]

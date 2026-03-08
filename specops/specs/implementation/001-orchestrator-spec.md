@@ -31,11 +31,11 @@ The orchestrator executes a strict sequential pipeline matching the Java validat
 
 ```
 CLI parse → Config build → Input open → Table load (parallel) →
-Load-time validate (during load) → Multi-file validate (parallel) →
-Feature detection → Report generation → Cleanup
+Load-time validate (during load) → Single-file validate (after each table) →
+Multi-file validate (parallel) → Feature detection → Report generation → Cleanup
 ```
 
-Each stage is a function called from `runner.run()`. Stages never skip silently — failures are captured as system errors or validation notices and the pipeline continues.
+Each stage is a function called from `runner.run()`. Stages never skip silently. Validator/runtime failures are captured as system errors and the pipeline continues. Fatal startup failures before loading (for example, invalid CLI arguments or inaccessible input) return `RunResult.EXCEPTION`.
 
 ---
 
@@ -144,7 +144,7 @@ class GtfsInput(Protocol):
 
 Use as a context manager (`__enter__`/`__exit__`) for resource cleanup.
 
-### Three Input Modes
+### Input Modes
 
 **1. Local directory** (`--input` pointing to a directory):
 - Walk directory for regular files (non-recursive — GTFS feeds are flat)
@@ -352,7 +352,7 @@ def check_foreign_key(
 
 - Use `anti_join` to find source values not in target:
   ```python
-  orphans = source_df.join(
+  orphans = source_df.filter(pl.col(source_field).is_not_null()).join(
       target_df.select(pl.col(target_field).unique()),
       left_on=source_field,
       right_on=target_field,
@@ -362,6 +362,7 @@ def check_foreign_key(
 - Emit `ForeignKeyViolationNotice` (ERROR) per orphan row
 - Notice fields: `filename`, `csvRowNumber`, `fieldName`, `fieldValue`, `foreignFilename`, `foreignFieldName`
 - Skip if target table has status `UNPARSABLE_ROWS` or `MISSING_FILE`
+- Null or empty source values are ignored for FK checks (presence rules are enforced separately)
 
 ### Range Ordering (`@EndRange`)
 
@@ -410,7 +411,7 @@ def check_end_range(
 
 **Single-entity validators** (Java concept) are replaced by vectorized Polars expressions in `load_validators.py`. No row-by-row Python loops.
 
-**Single-file validators** become functions that take a single DataFrame:
+**Single-file validators** become functions that take a single DataFrame and run immediately after each table load (after schema-driven checks):
 ```python
 def validate_stops_file(
     stops: pl.DataFrame,
@@ -469,12 +470,16 @@ Before running a validator:
 Every validator call is wrapped in a try/except:
 
 ```python
-def safe_validate(entry: ValidatorEntry, feed, ctx) -> list[Notice]:
+def safe_validate(
+    entry: ValidatorEntry,
+    feed,
+    ctx,
+) -> tuple[list[Notice], list[SystemError]]:
     try:
-        return entry.fn(feed, ctx)
+        return entry.fn(feed, ctx), []
     except Exception as exc:
-        return [RuntimeExceptionInValidatorError(
-            validator_name=entry.name,
+        return [], [RuntimeExceptionInValidatorError(
+            validatorClassName=entry.name,
             exception=type(exc).__name__,
             message=str(exc),
         )]
@@ -486,7 +491,7 @@ Runtime exceptions produce `RuntimeExceptionInValidatorError` system errors. Val
 
 Multi-file validators run in parallel using `concurrent.futures.ThreadPoolExecutor(max_workers=config.num_threads)`.
 
-Each validator receives its own notice list — no shared mutable state. Merge after all validators complete.
+Each validator receives its own notice list and system-error list — no shared mutable state. Merge after all validators complete.
 
 ---
 
@@ -563,12 +568,13 @@ class NoticeContainer:
     def merge(self, other: "NoticeContainer") -> None:
         """Merge another container into this one (post-thread-completion)."""
         for key, notices in other._notices.items():
+            incoming_total = other._counts.get(key, 0)
+            existing_total = self._counts[key]
             for notice in notices:
                 self.add(notice)
+            # Preserve aggregate totals exactly after capped sample merge.
+            self._counts[key] = existing_total + incoming_total
         self._system_errors.extend(other._system_errors)
-        # Counts must also be merged accurately
-        for key, count in other._counts.items():
-            self._counts[key] += count
 ```
 
 ### Notice Code Derivation
@@ -809,7 +815,6 @@ Orchestrates the full pipeline:
 ```python
 def run(config: ValidationConfig) -> RunResult:
     notices = NoticeContainer()
-    system_errors: list[SystemError] = []
     start_time = time.monotonic()
 
     # Stage 1: Open input
@@ -828,21 +833,26 @@ def run(config: ValidationConfig) -> RunResult:
     load_val_notices = run_load_validators(feed, table_statuses)
     notices.merge(load_val_notices)
 
-    # Stage 4: Multi-file validators (parallel)
+    # Stage 4: Single-file validators (post-load)
+    run_single_file_validators(feed, table_statuses, notices, ctx)
+
+    # Stage 5: Multi-file validators (parallel)
     for entry in VALIDATOR_REGISTRY:
         if should_skip(entry, table_statuses):
             continue
-        result_notices = safe_validate(entry, feed, ctx)
+        result_notices, result_errors = safe_validate(entry, feed, ctx)
         notices.merge(result_notices)
+        for error in result_errors:
+            notices.add_system_error(error)
 
-    # Stage 5: Feature detection
+    # Stage 6: Feature detection
     features = detect_features(feed)
 
-    # Stage 6: Report generation
+    # Stage 7: Report generation
     elapsed = time.monotonic() - start_time
     generate_reports(config, feed, notices, features, elapsed)
 
-    # Stage 7: Cleanup
+    # Stage 8: Cleanup
     gtfs_input.close()
 
     if notices.has_system_errors():
@@ -951,3 +961,22 @@ Standard library:
 10. `report.py` — Report generation (depends on: notices, features, config)
 11. `runner.py` — Pipeline orchestrator (depends on: everything above)
 12. `cli.py` — Entry point (depends on: runner, config)
+
+---
+
+## 19. Engineering Tasks
+
+1. Add `ValidationConfig` and `RunResult` in `config.py` with immutable defaults and explicit CLI invariant checks (`input/url` exclusivity, `storage_directory` only with `url`, `threads >= 1`, ISO date parsing, country-code normalization).
+2. Implement `GtfsInput` protocol plus concrete directory/ZIP/URL loaders in `input.py`, including ZIP-entry filtering (`__MACOSX`, `.DS_Store`, directory entries), subdirectory notice emission, and path-traversal rejection.
+3. Implement schema registry structures in `schemas.py` for table names, columns, required/recommended flags, field types, enum sets, PK/FK definitions, numeric/range constraints, and default-value metadata.
+4. Implement `Notice`, `SystemError`, `Severity`, and `NoticeContainer` in `notices.py` with exact capacity behavior (`MAX_TOTAL`, per-code+severity caps, export sample caps) and merge semantics that preserve true total counts.
+5. Implement `loading.py` table loader with parallel per-table execution, raw UTF-8 ingestion, header checks, whitespace trimming with notice emission, empty-string-to-null normalization, typed casting, and `TableStatus` assignment.
+6. Implement schema-driven load-time checks in `load_validators.py` for required/recommended values, enum domains, numeric bounds, PK duplication, FK violations (ignore null source values), end-range ordering, mixed-case warnings, currency precision, and default-value substitution.
+7. Implement single-file validator contracts and dispatch so single-file validators run immediately after each table load and use `ValidationContext` without direct I/O.
+8. Implement explicit ordered validator registries in `validators/__init__.py` with dependency metadata and no runtime discovery/reflection.
+9. Implement validator execution helpers in `runner.py` (`should_skip`, `safe_validate`) that return notices and system errors separately, recording runtime exceptions as `RuntimeExceptionInValidatorError`.
+10. Implement feature detection in `features.py` for all file-based and field-based checks defined by the analysis spec, returning only detected feature names.
+11. Implement report generation in `report.py` for `report.json`, `system_errors.json`, and HTML output with grouped notices, total counts, capped samples, feed summary metadata, and configured output filenames.
+12. Implement `runner.run()` stage orchestration in strict order: input open, table load, load-time validation, single-file validators, multi-file validators, feature detection, report generation, cleanup, and final `RunResult`.
+13. Implement `cli.py` to parse options, construct `ValidationConfig`, handle `--export_notices_schema` short-circuit, invoke `runner.run()`, and map `RunResult` to process exit codes.
+14. Add focused pytest coverage for loading, load-time checks, dispatch/skip behavior, runtime-exception-to-system-error conversion, feature detection, and report serialization with exact notice code/severity/field assertions.
