@@ -65,6 +65,9 @@ from gtfs_validator.validators.transfer_distance import validate_transfer_distan
 from gtfs_validator.validators.transfer_stop_ids_conditional import (
     validate_transfer_stop_ids_conditional,
 )
+from gtfs_validator.validators.transfers_in_seat_transfer_type import (
+    validate_transfers_in_seat_transfer_type,
+)
 from gtfs_validator.validators.location_has_stop_times import (
     validate_location_has_stop_times,
 )
@@ -319,6 +322,11 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="transfer_stop_ids_conditional",
         fn=validate_transfer_stop_ids_conditional,
         requires=["transfers"],
+    ),
+    ValidatorEntry(
+        name="transfers_in_seat_transfer_type",
+        fn=validate_transfers_in_seat_transfer_type,
+        requires=["transfers", "stops", "stop_times"],
     ),
     ValidatorEntry(
         name="location_has_stop_times",
