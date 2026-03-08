@@ -28,4 +28,13 @@ class ValidatorEntry:
 
 # Validators are added here as they are implemented.
 # Order matters — validators run in registry order.
-VALIDATOR_REGISTRY: list[ValidatorEntry] = []
+
+from gtfs_validator.validators.agency_consistency import validate_agency_consistency
+
+VALIDATOR_REGISTRY: list[ValidatorEntry] = [
+    ValidatorEntry(
+        name="agency_consistency",
+        fn=validate_agency_consistency,
+        requires=["agency"],
+    ),
+]
