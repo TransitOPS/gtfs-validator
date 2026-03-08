@@ -85,6 +85,9 @@ from gtfs_validator.validators.overlapping_frequency import validate_overlapping
 from gtfs_validator.validators.overlapping_pickup_drop_off_zone import (
     validate_overlapping_pickup_drop_off_zone,
 )
+from gtfs_validator.validators.pickup_booking_rule_id import (
+    validate_pickup_booking_rule_id,
+)
 from gtfs_validator.validators.parent_station import validate_parent_station
 from gtfs_validator.validators.pathway_dangling_generic_node import (
     validate_pathway_dangling_generic_node,
@@ -302,6 +305,11 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="overlapping_pickup_drop_off_zone",
         fn=validate_overlapping_pickup_drop_off_zone,
         requires=["stop_times", "locations_geojson"],
+    ),
+    ValidatorEntry(
+        name="pickup_booking_rule_id",
+        fn=validate_pickup_booking_rule_id,
+        requires=["stop_times", "booking_rules"],
     ),
     ValidatorEntry(
         name="parent_station",

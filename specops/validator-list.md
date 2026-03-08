@@ -46,7 +46,7 @@
 42. ~~PathwayLoopValidator~~ ✅
 43. ~~PathwayReachableLocationValidator~~ ✅
 44. ~~PathwayStopAccessValidator~~ ✅
-45. PickupBookingRuleIdValidator
+45. ~~PickupBookingRuleIdValidator~~ ✅
 46. PickupDropOffTypeValidator
 47. PickupDropOffWindowValidator
 48. RouteAgencyIdValidator
