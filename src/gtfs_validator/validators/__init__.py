@@ -179,6 +179,7 @@ from gtfs_validator.validators.trip_and_shape_distance import (
 )
 from gtfs_validator.validators.trip_usability import validate_trip_usability
 from gtfs_validator.validators.trip_usage import validate_trip_usage
+from gtfs_validator.validators.unique_geography_id import validate_unique_geography_id
 
 VALIDATOR_REGISTRY: list[ValidatorEntry] = [
     ValidatorEntry(
@@ -580,5 +581,10 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="translation_field_and_reference",
         fn=validate_translation_field_and_reference,
         requires=["translations"],
+    ),
+    ValidatorEntry(
+        name="unique_geography_id",
+        fn=validate_unique_geography_id,
+        requires=[],  # handles absent tables internally; any combination may be present
     ),
 ]

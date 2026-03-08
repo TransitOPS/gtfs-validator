@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import polars as pl
 
 from gtfs_validator.context import ValidationContext
@@ -13,92 +15,77 @@ def validate_unique_geography_id(
     ctx: ValidationContext,
 ) -> list[Notice]:
     """Check that geography IDs are unique across stops.txt, location_groups.txt, and locations.geojson.
-    
+
     Emits an ERROR notice when the same ID appears in more than one of:
     - stops.stop_id
     - location_groups.location_group_id
     - locations.geojson feature.id
+
+    Same-source duplicates are ignored; they are handled by load-time PK checks.
     """
-    # Collect all ID entries from each table
-    entries: list[dict] = []
-    
+    # Collect all ID entries from each source
+    entries: list[dict[str, Any]] = []
+
     # From stops.txt
-    if "stops" in feed and not feed["stops"].is_empty():
-        stops = feed["stops"]
-        if "stop_id" in stops.columns:
-            for row in stops.select("stop_id", "csv_row_number").iter_rows(named=True):
-                if row["stop_id"] is not None:
-                    entries.append({
-                        "id": row["stop_id"],
-                        "source": "stops.txt",
-                        "row_number": row["csv_row_number"],
-                    })
-    
+    stops_df = feed.get("stops")
+    if stops_df is not None and not stops_df.is_empty() and "stop_id" in stops_df.columns:
+        for row in stops_df.select("stop_id", "csv_row_number").iter_rows(named=True):
+            if row["stop_id"] is not None:
+                entries.append({"id": row["stop_id"], "source": "stops.txt", "row_number": row["csv_row_number"]})
+
     # From location_groups.txt
-    if "location_groups" in feed and not feed["location_groups"].is_empty():
-        loc_groups = feed["location_groups"]
-        if "location_group_id" in loc_groups.columns:
-            for row in loc_groups.select("location_group_id", "csv_row_number").iter_rows(named=True):
-                if row["location_group_id"] is not None:
-                    entries.append({
-                        "id": row["location_group_id"],
-                        "source": "location_groups.txt",
-                        "row_number": row["csv_row_number"],
-                    })
-    
-    # From locations.geojson (if present)
-    if "geojson_features" in feed and not feed["geojson_features"].is_empty():
-        features = feed["geojson_features"]
-        if "feature_id" in features.columns and "feature_index" in features.columns:
-            for row in features.select("feature_id", "feature_index").iter_rows(named=True):
-                if row["feature_id"] is not None:
-                    entries.append({
-                        "id": row["feature_id"],
-                        "source": "locations.geojson",
-                        "row_number": row["feature_index"],
-                    })
-    
+    lg_df = feed.get("location_groups")
+    if lg_df is not None and not lg_df.is_empty() and "location_group_id" in lg_df.columns:
+        for row in lg_df.select("location_group_id", "csv_row_number").iter_rows(named=True):
+            if row["location_group_id"] is not None:
+                entries.append({"id": row["location_group_id"], "source": "location_groups.txt", "row_number": row["csv_row_number"]})
+
+    # From locations.geojson (list of dicts, not a DataFrame)
+    geojson_features: list[dict[str, Any]] = feed.get("locations_geojson") or []  # type: ignore[assignment]
+    for feature in geojson_features:
+        fid = feature.get("id")
+        if fid is not None:
+            entries.append({"id": fid, "source": "locations.geojson", "row_number": feature.get("index")})
+
     if not entries:
         return []
-    
-    # Group by ID and check for duplicates across different sources
-    notices: list[Notice] = []
-    id_groups: dict[str, list[dict]] = {}
-    
+
+    # Group by ID and detect cross-source collisions
+    id_groups: dict[str, list[dict[str, Any]]] = {}
     for entry in entries:
-        id_val = entry["id"]
-        if id_val not in id_groups:
-            id_groups[id_val] = []
-        id_groups[id_val].append(entry)
-    
+        id_groups.setdefault(entry["id"], []).append(entry)
+
+    notices: list[Notice] = []
     for geo_id, group in id_groups.items():
-        # Check if this ID appears in more than one source
-        sources = {e["source"] for e in group}
-        if len(sources) > 1:
-            # Get row numbers for each source (may be None if source not present)
-            csv_row_number_stops = None
-            csv_row_number_location_groups = None
-            feature_index = None
-            
-            for entry in group:
-                if entry["source"] == "stops.txt":
-                    csv_row_number_stops = entry["row_number"]
-                elif entry["source"] == "location_groups.txt":
-                    csv_row_number_location_groups = entry["row_number"]
-                elif entry["source"] == "locations.geojson":
-                    feature_index = entry["row_number"]
-            
-            notices.append(
-                Notice(
-                    code="duplicate_geography_id",
-                    severity=Severity.ERROR,
-                    fields={
-                        "geography_id": geo_id,
-                        "csv_row_number_stops": csv_row_number_stops,
-                        "csv_row_number_location_groups": csv_row_number_location_groups,
-                        "feature_index": feature_index,
-                    },
-                )
+        unique_sources = {e["source"] for e in group}
+        if len(unique_sources) <= 1:
+            continue  # same-source duplicates are handled by load-time PK checks
+
+        # Capture only the first occurrence per source (findFirst semantics)
+        csv_row_number_stops: int | None = None
+        csv_row_number_location_groups: int | None = None
+        feature_index: int | None = None
+
+        for entry in group:
+            src = entry["source"]
+            if src == "stops.txt" and csv_row_number_stops is None:
+                csv_row_number_stops = entry["row_number"]
+            elif src == "location_groups.txt" and csv_row_number_location_groups is None:
+                csv_row_number_location_groups = entry["row_number"]
+            elif src == "locations.geojson" and feature_index is None:
+                feature_index = entry["row_number"]
+
+        notices.append(
+            Notice(
+                code="duplicate_geography_id",
+                severity=Severity.ERROR,
+                fields={
+                    "geography_id": geo_id,
+                    "csv_row_number_stops": csv_row_number_stops,
+                    "csv_row_number_location_groups": csv_row_number_location_groups,
+                    "feature_index": feature_index,
+                },
             )
-    
+        )
+
     return notices
