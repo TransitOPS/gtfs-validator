@@ -10,7 +10,7 @@
 6. ~~BookingRulesEntityValidator~~ ✅
 7. ~~ContinuousPickupDropOffValidator~~ ✅
 8. ~~DateTripsValidator~~ ✅
-9. DuplicateFareMediaValidator
+9. ~~DuplicateFareMediaValidator~~ ✅
 10. DuplicateRouteNameValidator
 11. ExpiredCalendarValidator
 12. FareAttributeAgencyIdValidator
