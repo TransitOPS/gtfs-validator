@@ -1,0 +1,22 @@
+plugins {
+    id 'java'
+}
+
+dependencies {
+    implementation project(':model')
+    implementation project(':core')
+    annotationProcessor libs.auto.service
+    compileOnly libs.auto.service
+    annotationProcessor libs.auto.value
+    compileOnly libs.auto.value.annotations
+    implementation libs.javax.inject
+    implementation libs.java.poet
+    implementation libs.commons.lang3
+    implementation libs.guava
+    implementation libs.flogger
+    implementation libs.univocity.parsers
+    implementation libs.geometry
+    testImplementation libs.junit
+    testImplementation libs.truth
+}
+

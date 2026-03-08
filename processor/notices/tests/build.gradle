@@ -1,0 +1,29 @@
+plugins {
+    id 'java'
+}
+
+group 'org.mobilitydata'
+version '4.0.1-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    annotationProcessor project(":processor:notices")
+    implementation project(':model')
+    implementation libs.gson
+    testImplementation libs.junit
+    testImplementation libs.truth
+    testImplementation libs.truth.extension
+}
+
+test {
+    // Always run tests, even when nothing changed.
+    dependsOn 'cleanTest'
+
+    // Show test results.
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}
