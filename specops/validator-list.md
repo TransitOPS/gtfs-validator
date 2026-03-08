@@ -41,7 +41,7 @@
 37. ~~OverlappingFrequencyValidator~~ ✅
 38. ~~OverlappingPickupDropOffZoneValidator~~ ✅
 39. ~~ParentStationValidator~~ ✅
-40. PathwayDanglingGenericNodeValidator
+40. ~~PathwayDanglingGenericNodeValidator~~ ✅
 41. PathwayEndpointTypeValidator
 42. PathwayLoopValidator
 43. PathwayReachableLocationValidator

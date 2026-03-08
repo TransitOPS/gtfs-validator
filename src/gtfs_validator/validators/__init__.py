@@ -86,6 +86,9 @@ from gtfs_validator.validators.overlapping_pickup_drop_off_zone import (
     validate_overlapping_pickup_drop_off_zone,
 )
 from gtfs_validator.validators.parent_station import validate_parent_station
+from gtfs_validator.validators.pathway_dangling_generic_node import (
+    validate_pathway_dangling_generic_node,
+)
 from gtfs_validator.validators.geojson_geometry import validate_geojson_geometry
 from gtfs_validator.validators.feed_expiration_date import validate_feed_expiration_date
 from gtfs_validator.validators.feed_service_date import validate_feed_service_date
@@ -296,5 +299,10 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="parent_station",
         fn=validate_parent_station,
         requires=["stops"],
+    ),
+    ValidatorEntry(
+        name="pathway_dangling_generic_node",
+        fn=validate_pathway_dangling_generic_node,
+        requires=["stops", "pathways"],
     ),
 ]
