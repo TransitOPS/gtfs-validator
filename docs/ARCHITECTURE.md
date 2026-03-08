@@ -1,4 +1,6 @@
 # Architecture description
+> Note: The Java `processor/` module has been removed as part of the Python migration work and is no longer relevant to the active validator architecture.
+
 `gtfs-validator` is composed of a number of modules, as shown in the following dependency diagram:
 
 ```mermaid
@@ -215,4 +217,3 @@ By order of appearance in the interface definition:
 | [`@RecommendedColumn`](../model/src/main/java/org/mobilitydata/gtfsvalidator/annotation/RecommendedColumn.java)                     	       | For a field, specifies the column is recommended, but empty values in that field do not violate the recommendation.                                                                                                   	                       |
 | [`@Required`](../model/src/main/java/org/mobilitydata/gtfsvalidator/annotation/Required.java)                           	                   | For a file, specifies the file is recommended. For a field, specifies the column and all non-empty values are required.                                                                                                                 	     |
 | [`@RequiredColumn`](../model/src/main/java/org/mobilitydata/gtfsvalidator/annotation/RequiredColumn.java)                     	             | For a field, specifies the column is required, but empty values in that field do not violate the requirement.                                                                                                   	                             |
-
