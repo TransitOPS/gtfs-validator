@@ -118,6 +118,7 @@ from gtfs_validator.validators.trip_service_id_foreign_key_validator import (
 from gtfs_validator.validators.route_color_contrast import validate_route_color_contrast
 from gtfs_validator.validators.route_name import validate_route_name
 from gtfs_validator.validators.service_gap import validate_service_gap
+from gtfs_validator.validators.service_no_active_day import validate_service_no_active_day
 from gtfs_validator.validators.trip_usage import validate_trip_usage
 
 VALIDATOR_REGISTRY: list[ValidatorEntry] = [
@@ -184,6 +185,11 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
     ValidatorEntry(
         name="service_gap",
         fn=validate_service_gap,
+        requires=["calendar"],
+    ),
+    ValidatorEntry(
+        name="service_no_active_day",
+        fn=validate_service_no_active_day,
         requires=["calendar"],
     ),
     ValidatorEntry(
