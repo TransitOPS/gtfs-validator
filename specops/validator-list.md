@@ -21,7 +21,7 @@
 17. ~~FareTransferRuleTransferCountValidator~~ ✅
 18. ~~FeedContactValidator~~ ✅
 19. ~~FeedExpirationDateValidator~~ ✅
-20. FeedServiceDateValidator
+20. ~~FeedServiceDateValidator~~ ✅
 21. FeedValidTodayValidator
 22. GeoJsonGeometryValidator
 23. GtfsFareLegRuleNetworkIdForeignKeyValidator
