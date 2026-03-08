@@ -19,13 +19,13 @@ def make_stops(
     """Build a stops DataFrame. Each row is (stop_id, stop_name, level_id)."""
     return pl.DataFrame(
         {
-            "csvRowNumber": list(range(row_start, row_start + len(rows))),
+            "csv_row_number": list(range(row_start, row_start + len(rows))),
             "stop_id": [r[0] for r in rows],
             "stop_name": [r[1] for r in rows],
             "level_id": [r[2] for r in rows],
         },
         schema={
-            "csvRowNumber": pl.Int64,
+            "csv_row_number": pl.Int64,
             "stop_id": pl.Utf8,
             "stop_name": pl.Utf8,
             "level_id": pl.Utf8,
@@ -40,13 +40,13 @@ def make_pathways(
     """Build a pathways DataFrame. Each row is (from_stop_id, to_stop_id, pathway_mode)."""
     return pl.DataFrame(
         {
-            "csvRowNumber": list(range(row_start, row_start + len(rows))),
+            "csv_row_number": list(range(row_start, row_start + len(rows))),
             "from_stop_id": [r[0] for r in rows],
             "to_stop_id": [r[1] for r in rows],
             "pathway_mode": [r[2] for r in rows],
         },
         schema={
-            "csvRowNumber": pl.Int64,
+            "csv_row_number": pl.Int64,
             "from_stop_id": pl.Utf8,
             "to_stop_id": pl.Utf8,
             "pathway_mode": pl.Int64,

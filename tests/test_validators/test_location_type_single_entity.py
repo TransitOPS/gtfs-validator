@@ -19,7 +19,7 @@ CTX = ValidationContext(country_code="US", date_for_validation=date(2026, 3, 8))
 def make_stops(rows: list[dict]) -> pl.DataFrame:
     """Build a stops DataFrame from row dicts."""
     schema = {
-        "csvRowNumber": pl.Int64,
+        "csv_row_number": pl.Int64,
         "stop_id": pl.Utf8,
         "stop_name": pl.Utf8,
         "location_type": pl.Int64,
@@ -37,7 +37,7 @@ def make_stops(rows: list[dict]) -> pl.DataFrame:
 def test_station_without_parent_no_notice():
     feed = {"stops": make_stops([
         {"stop_id": "s0", "location_type": 1, "stop_name": "Stop 0",
-         "parent_station": None, "csvRowNumber": 1},
+         "parent_station": None, "csv_row_number": 1},
     ])}
     notices = validate_location_type_single_entity(feed, CTX)
     assert len(notices) == 0
@@ -47,7 +47,7 @@ def test_station_without_parent_no_notice():
 def test_station_with_parent_yields_error():
     feed = {"stops": make_stops([
         {"stop_id": "s0", "location_type": 1, "stop_name": "Stop 0",
-         "parent_station": "parent", "csvRowNumber": 1},
+         "parent_station": "parent", "csv_row_number": 1},
     ])}
     notices = validate_location_type_single_entity(feed, CTX)
     assert len(notices) == 1
@@ -64,7 +64,7 @@ def test_station_with_parent_yields_error():
 def test_platform_with_parent_no_notice():
     feed = {"stops": make_stops([
         {"stop_id": "s0", "location_type": 0, "stop_name": "Stop 0",
-         "parent_station": "parent", "platform_code": "1", "csvRowNumber": 1},
+         "parent_station": "parent", "platform_code": "1", "csv_row_number": 1},
     ])}
     notices = validate_location_type_single_entity(feed, CTX)
     assert len(notices) == 0
@@ -74,7 +74,7 @@ def test_platform_with_parent_no_notice():
 def test_platform_without_parent_yields_info():
     feed = {"stops": make_stops([
         {"stop_id": "s0", "location_type": 0, "stop_name": "Stop 0",
-         "parent_station": None, "platform_code": "1", "csvRowNumber": 1},
+         "parent_station": None, "platform_code": "1", "csv_row_number": 1},
     ])}
     notices = validate_location_type_single_entity(feed, CTX)
     assert len(notices) == 1
@@ -90,7 +90,7 @@ def test_platform_without_parent_yields_info():
 def test_stop_without_platform_code_and_without_parent_no_notice():
     feed = {"stops": make_stops([
         {"stop_id": "s0", "location_type": 0, "stop_name": "Stop 0",
-         "parent_station": None, "platform_code": None, "csvRowNumber": 1},
+         "parent_station": None, "platform_code": None, "csv_row_number": 1},
     ])}
     notices = validate_location_type_single_entity(feed, CTX)
     assert len(notices) == 0
@@ -101,7 +101,7 @@ def test_stop_without_platform_code_and_without_parent_no_notice():
 def test_location_without_parent_yields_error(lt: int):
     feed = {"stops": make_stops([
         {"stop_id": "s0", "location_type": lt, "stop_name": "Stop 0",
-         "parent_station": None, "csvRowNumber": 1},
+         "parent_station": None, "csv_row_number": 1},
     ])}
     notices = validate_location_type_single_entity(feed, CTX)
     assert len(notices) == 1
@@ -119,7 +119,7 @@ def test_location_without_parent_yields_error(lt: int):
 def test_location_with_parent_no_notice(lt: int):
     feed = {"stops": make_stops([
         {"stop_id": "s0", "location_type": lt, "stop_name": "Stop 0",
-         "parent_station": "parent", "csvRowNumber": 1},
+         "parent_station": "parent", "csv_row_number": 1},
     ])}
     notices = validate_location_type_single_entity(feed, CTX)
     assert len(notices) == 0
@@ -143,13 +143,13 @@ def test_multiple_violations_across_types():
     feed = {"stops": make_stops([
         # station with parent -> station_with_parent_station ERROR
         {"stop_id": "s1", "location_type": 1, "stop_name": "Station",
-         "parent_station": "p1", "csvRowNumber": 1},
+         "parent_station": "p1", "csv_row_number": 1},
         # entrance without parent -> location_without_parent_station ERROR
         {"stop_id": "s2", "location_type": 2, "stop_name": "Entrance",
-         "parent_station": None, "csvRowNumber": 2},
+         "parent_station": None, "csv_row_number": 2},
         # stop with platform_code but no parent -> platform_without_parent_station INFO
         {"stop_id": "s3", "location_type": 0, "stop_name": "Platform",
-         "parent_station": None, "platform_code": "A", "csvRowNumber": 3},
+         "parent_station": None, "platform_code": "A", "csv_row_number": 3},
     ])}
     notices = validate_location_type_single_entity(feed, CTX)
     assert len(notices) == 3
@@ -169,7 +169,7 @@ def test_multiple_violations_across_types():
 def test_parent_station_empty_string_treated_as_absent():
     feed = {"stops": make_stops([
         {"stop_id": "s0", "location_type": 2, "stop_name": "Stop 0",
-         "parent_station": "", "csvRowNumber": 1},
+         "parent_station": "", "csv_row_number": 1},
     ])}
     notices = validate_location_type_single_entity(feed, CTX)
     assert len(notices) == 1
@@ -180,7 +180,7 @@ def test_parent_station_empty_string_treated_as_absent():
 def test_location_type_defaults_to_zero():
     feed = {"stops": make_stops([
         {"stop_id": "s0", "location_type": 0, "stop_name": "Stop 0",
-         "parent_station": None, "platform_code": None, "csvRowNumber": 1},
+         "parent_station": None, "platform_code": None, "csv_row_number": 1},
     ])}
     notices = validate_location_type_single_entity(feed, CTX)
     assert len(notices) == 0

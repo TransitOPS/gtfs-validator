@@ -43,7 +43,7 @@ def validate_missing_level_id(
     has_level_id = "level_id" in stops.columns
     has_stop_name = "stop_name" in stops.columns
 
-    stop_cols = ["stop_id", "csvRowNumber"]
+    stop_cols = ["stop_id", "csv_row_number"]
     if has_level_id:
         stop_cols.append("level_id")
     if has_stop_name:
@@ -76,7 +76,7 @@ def validate_missing_level_id(
                 code="missing_level_id",
                 severity=Severity.ERROR,
                 fields={
-                    "csvRowNumber": row["csvRowNumber"],
+                    "csvRowNumber": row["csv_row_number"],
                     "stopId": row["stop_id"],
                     "stopName": stop_name,
                 },

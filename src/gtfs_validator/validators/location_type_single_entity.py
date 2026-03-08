@@ -47,7 +47,7 @@ def validate_location_type_single_entity(
                     code="station_with_parent_station",
                     severity=Severity.ERROR,
                     fields={
-                        "csvRowNumber": row["csvRowNumber"],
+                        "csvRowNumber": row["csv_row_number"],
                         "stopId": row["stop_id"],
                         "stopName": row.get("stop_name", ""),
                         "parentStation": row["parent_station"],
@@ -66,7 +66,7 @@ def validate_location_type_single_entity(
                 code="location_without_parent_station",
                 severity=Severity.ERROR,
                 fields={
-                    "csvRowNumber": row["csvRowNumber"],
+                    "csvRowNumber": row["csv_row_number"],
                     "stopId": row["stop_id"],
                     "stopName": row.get("stop_name", ""),
                     "locationType": row["location_type"],
@@ -86,7 +86,7 @@ def validate_location_type_single_entity(
                     code="platform_without_parent_station",
                     severity=Severity.INFO,
                     fields={
-                        "csvRowNumber": row["csvRowNumber"],
+                        "csvRowNumber": row["csv_row_number"],
                         "stopId": row["stop_id"],
                         "stopName": row.get("stop_name", ""),
                     },

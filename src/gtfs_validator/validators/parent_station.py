@@ -45,11 +45,11 @@ def validate_parent_station(
 
         # Build parent lookup table (all stops, selecting identifying columns)
         # Rename columns to avoid collision after the self-join
-        parent_lookup = stops.select(["stop_id", "stop_name", "location_type", "csvRowNumber"]).rename({
+        parent_lookup = stops.select(["stop_id", "stop_name", "location_type", "csv_row_number"]).rename({
             "stop_id": "parent_station",
             "stop_name": "parentStopName",
             "location_type": "parentLocationType",
-            "csvRowNumber": "parentCsvRowNumber",
+            "csv_row_number": "parentCsvRowNumber",
         })
 
         # Filter child rows: recognized types that have a non-null, non-empty parent_station
@@ -76,14 +76,14 @@ def validate_parent_station(
             # Filter mismatches: actual parent type != expected parent type
             mismatches = joined.filter(
                 pl.col("parentLocationType") != pl.col("expectedLocationType")
-            ).sort("csvRowNumber")  # stable output order by child row number
+            ).sort("csv_row_number")  # stable output order by child row number
 
             for row in mismatches.iter_rows(named=True):
                 notices.append(Notice(
                     code="wrong_parent_location_type",
                     severity=Severity.ERROR,
                     fields={
-                        "csvRowNumber": row["csvRowNumber"],
+                        "csvRowNumber": row["csv_row_number"],
                         "stopId": row["stop_id"],
                         "stopName": row.get("stop_name"),
                         "locationType": row["location_type"],
@@ -98,7 +98,7 @@ def validate_parent_station(
     # --- Check B: unused_station ---
     # Stations: rows where location_type == 1
     stations = stops.filter(pl.col("location_type") == 1).select(
-        ["stop_id", "stop_name", "csvRowNumber"]
+        ["stop_id", "stop_name", "csv_row_number"]
     )
 
     if not stations.is_empty():
@@ -113,14 +113,14 @@ def validate_parent_station(
             stop_parents = pl.DataFrame({"stop_id": []}, schema={"stop_id": pl.Utf8})
 
         # Anti-join: stations with no matching STOP child
-        unused = stations.join(stop_parents, on="stop_id", how="anti").sort("csvRowNumber")
+        unused = stations.join(stop_parents, on="stop_id", how="anti").sort("csv_row_number")
 
         for row in unused.iter_rows(named=True):
             notices.append(Notice(
                 code="unused_station",
                 severity=Severity.INFO,
                 fields={
-                    "csvRowNumber": row["csvRowNumber"],
+                    "csvRowNumber": row["csv_row_number"],
                     "stopId": row["stop_id"],
                     "stopName": row.get("stop_name"),
                 },
