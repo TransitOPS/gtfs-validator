@@ -42,6 +42,10 @@ def validate_trip_and_shape_distance(
         if tbl not in feed or feed[tbl].is_empty():
             return []
 
+    # shape_dist_traveled is optional in stop_times; skip if not present
+    if "shape_dist_traveled" not in feed["stop_times"].columns:
+        return []
+
     # Step 1 — Last stop time per trip
     last_st = (
         feed["stop_times"]
