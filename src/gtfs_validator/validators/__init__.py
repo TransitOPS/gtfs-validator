@@ -97,6 +97,7 @@ from gtfs_validator.validators.pickup_drop_off_window import (
 )
 from gtfs_validator.validators.parent_station import validate_parent_station
 from gtfs_validator.validators.stop_access import validate_stop_access
+from gtfs_validator.validators.stop_name import validate_stop_name
 from gtfs_validator.validators.pathway_dangling_generic_node import (
     validate_pathway_dangling_generic_node,
 )
@@ -360,6 +361,11 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
     ValidatorEntry(
         name="stop_access",
         fn=validate_stop_access,
+        requires=["stops"],
+    ),
+    ValidatorEntry(
+        name="stop_name",
+        fn=validate_stop_name,
         requires=["stops"],
     ),
     ValidatorEntry(
