@@ -13,7 +13,7 @@
 9. ~~DuplicateFareMediaValidator~~ ✅
 10. ~~DuplicateRouteNameValidator~~ ✅
 11. ~~ExpiredCalendarValidator~~ ✅
-12. FareAttributeAgencyIdValidator
+12. ~~FareAttributeAgencyIdValidator~~ ✅
 13. FareLegJoinRuleValidator
 14. FareMediaNameValidator
 15. FareProductDefaultRiderCategoriesValidator

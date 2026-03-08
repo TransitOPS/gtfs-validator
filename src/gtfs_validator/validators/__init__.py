@@ -39,6 +39,7 @@ from gtfs_validator.validators.date_trips import validate_date_trips
 from gtfs_validator.validators.duplicate_fare_media import validate_duplicate_fare_media
 from gtfs_validator.validators.duplicate_route_name import validate_duplicate_route_name
 from gtfs_validator.validators.expired_calendar import validate_expired_calendar
+from gtfs_validator.validators.fare_attribute_agency_id import validate_fare_attribute_agency_id
 from gtfs_validator.validators.pathways import validate_bidirectional_exit_gate
 
 VALIDATOR_REGISTRY: list[ValidatorEntry] = [
@@ -96,5 +97,10 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="expired_calendar",
         fn=validate_expired_calendar,
         requires=["calendar", "calendar_dates"],
+    ),
+    ValidatorEntry(
+        name="fare_attribute_agency_id",
+        fn=validate_fare_attribute_agency_id,
+        requires=["agency", "fare_attributes"],
     ),
 ]
