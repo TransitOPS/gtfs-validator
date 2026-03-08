@@ -44,13 +44,12 @@ def validate_service_no_active_day(
         return []
 
     notices: list[Notice] = []
-    for row in offending.select(["csv_row_number", "service_id"]).iter_rows(named=True):
+    for row in offending.select(["service_id"]).iter_rows(named=True):
         notices.append(
             Notice(
                 code="service_has_no_active_day_of_the_week",
                 severity=Severity.WARNING,
                 fields={
-                    "csvRowNumber": row["csv_row_number"],
                     "serviceId": row["service_id"],
                 },
             )

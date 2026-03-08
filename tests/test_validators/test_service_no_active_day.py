@@ -17,7 +17,6 @@ CTX = ValidationContext(
 )
 
 _CALENDAR_SCHEMA = {
-    "csv_row_number": pl.Int64,
     "service_id": pl.Utf8,
     "monday": pl.Int64,
     "tuesday": pl.Int64,
@@ -49,8 +48,8 @@ def make_calendar(rows: list[dict]) -> pl.DataFrame:
 def test_service_has_no_active_day_emits_notice() -> None:
     """service_1 with all zeros gets a notice; service_2 with monday=1 does not."""
     rows = [
-        {"csv_row_number": 2, "service_id": "service_1", **_ALL_ZERO},
-        {"csv_row_number": 3, "service_id": "service_2", **_ALL_ZERO, "monday": 1},
+        {"service_id": "service_1", **_ALL_ZERO},
+        {"service_id": "service_2", **_ALL_ZERO, "monday": 1},
     ]
     feed = {"calendar": make_calendar(rows)}
     notices = validate_service_no_active_day(feed, CTX)
@@ -60,7 +59,6 @@ def test_service_has_no_active_day_emits_notice() -> None:
     assert notice.code == "service_has_no_active_day_of_the_week"
     assert notice.severity == Severity.WARNING
     assert notice.fields["serviceId"] == "service_1"
-    assert notice.fields["csvRowNumber"] == 2
     service_ids = [n.fields["serviceId"] for n in notices]
     assert "service_2" not in service_ids
 
@@ -68,8 +66,8 @@ def test_service_has_no_active_day_emits_notice() -> None:
 def test_service_has_active_day_no_notice() -> None:
     """Two services both with monday=1 produce no notices."""
     rows = [
-        {"csv_row_number": 2, "service_id": "service_1", **_ALL_ZERO, "monday": 1},
-        {"csv_row_number": 3, "service_id": "service_2", **_ALL_ZERO, "monday": 1},
+        {"service_id": "service_1", **_ALL_ZERO, "monday": 1},
+        {"service_id": "service_2", **_ALL_ZERO, "monday": 1},
     ]
     feed = {"calendar": make_calendar(rows)}
     assert validate_service_no_active_day(feed, CTX) == []
@@ -77,7 +75,7 @@ def test_service_has_active_day_no_notice() -> None:
 
 def test_all_days_active_no_notice() -> None:
     """Single row with all day columns = 1 produces no notice."""
-    rows = [{"csv_row_number": 2, "service_id": "svc", **_ALL_ONE}]
+    rows = [{"service_id": "svc", **_ALL_ONE}]
     feed = {"calendar": make_calendar(rows)}
     assert validate_service_no_active_day(feed, CTX) == []
 
@@ -85,9 +83,9 @@ def test_all_days_active_no_notice() -> None:
 def test_multiple_inactive_services_multiple_notices() -> None:
     """Three all-zero rows each produce a notice."""
     rows = [
-        {"csv_row_number": 2, "service_id": "service_a", **_ALL_ZERO},
-        {"csv_row_number": 3, "service_id": "service_b", **_ALL_ZERO},
-        {"csv_row_number": 4, "service_id": "service_c", **_ALL_ZERO},
+        {"service_id": "service_a", **_ALL_ZERO},
+        {"service_id": "service_b", **_ALL_ZERO},
+        {"service_id": "service_c", **_ALL_ZERO},
     ]
     feed = {"calendar": make_calendar(rows)}
     notices = validate_service_no_active_day(feed, CTX)
@@ -100,8 +98,8 @@ def test_multiple_inactive_services_multiple_notices() -> None:
 def test_mixed_active_and_inactive_only_inactive_flagged() -> None:
     """Only the all-zero service is flagged; the one with saturday=1 is not."""
     rows = [
-        {"csv_row_number": 2, "service_id": "service_inactive", **_ALL_ZERO},
-        {"csv_row_number": 3, "service_id": "service_active", **_ALL_ZERO, "saturday": 1},
+        {"service_id": "service_inactive", **_ALL_ZERO},
+        {"service_id": "service_active", **_ALL_ZERO, "saturday": 1},
     ]
     feed = {"calendar": make_calendar(rows)}
     notices = validate_service_no_active_day(feed, CTX)
@@ -125,14 +123,14 @@ def test_empty_calendar_no_notice() -> None:
 
 def test_null_service_id_row_skipped() -> None:
     """Row with null service_id and all-zero days is not flagged."""
-    rows = [{"csv_row_number": 2, "service_id": None, **_ALL_ZERO}]
+    rows = [{"service_id": None, **_ALL_ZERO}]
     feed = {"calendar": make_calendar(rows)}
     assert validate_service_no_active_day(feed, CTX) == []
 
 
 def test_null_day_column_treated_as_zero() -> None:
     """Null in a day column is treated as 0 (NOT_AVAILABLE)."""
-    row = {"csv_row_number": 2, "service_id": "svc", **_ALL_ZERO, "monday": None}
+    row = {"service_id": "svc", **_ALL_ZERO, "monday": None}
     feed = {"calendar": make_calendar([row])}
     notices = validate_service_no_active_day(feed, CTX)
 
@@ -145,27 +143,24 @@ def test_null_day_column_treated_as_zero() -> None:
 ])
 def test_exactly_one_active_day_each_day_position(active_day: str) -> None:
     """A single active day column suppresses the notice regardless of position."""
-    row = {"csv_row_number": 2, "service_id": "svc", **_ALL_ZERO, active_day: 1}
+    row = {"service_id": "svc", **_ALL_ZERO, active_day: 1}
     feed = {"calendar": make_calendar([row])}
     assert validate_service_no_active_day(feed, CTX) == []
 
 
-def test_csv_row_number_preserved_in_notice() -> None:
-    """csv_row_number is read from the DataFrame, not recomputed."""
-    rows = [
-        {"csv_row_number": 5, "service_id": "svc_inactive", **_ALL_ZERO},
-        {"csv_row_number": 2, "service_id": "svc_active", **_ALL_ZERO, "monday": 1},
-    ]
+def test_notice_fields_contain_service_id() -> None:
+    """Emitted notice contains serviceId identifying the offending service."""
+    rows = [{"service_id": "svc_inactive", **_ALL_ZERO}]
     feed = {"calendar": make_calendar(rows)}
     notices = validate_service_no_active_day(feed, CTX)
 
     assert len(notices) == 1
-    assert notices[0].fields["csvRowNumber"] == 5
+    assert notices[0].fields["serviceId"] == "svc_inactive"
 
 
 def test_notice_code_and_severity() -> None:
     """Emitted notice has the correct code and WARNING severity."""
-    rows = [{"csv_row_number": 2, "service_id": "svc", **_ALL_ZERO}]
+    rows = [{"service_id": "svc", **_ALL_ZERO}]
     feed = {"calendar": make_calendar(rows)}
     notices = validate_service_no_active_day(feed, CTX)
 
@@ -176,9 +171,9 @@ def test_notice_code_and_severity() -> None:
 
 def test_calendar_dates_ignored() -> None:
     """calendar_dates entries for a service do not suppress the notice."""
-    calendar_rows = [{"csv_row_number": 2, "service_id": "service_1", **_ALL_ZERO}]
+    calendar_rows = [{"service_id": "service_1", **_ALL_ZERO}]
     calendar_dates_rows = [
-        {"csv_row_number": 2, "service_id": "service_1", "date": "20240101", "exception_type": 1}
+        {"service_id": "service_1", "date": "20240101", "exception_type": 1}
     ]
     feed = {
         "calendar": make_calendar(calendar_rows),
@@ -192,14 +187,14 @@ def test_calendar_dates_ignored() -> None:
 
 def test_single_row_all_active_no_notice() -> None:
     """Single calendar row with all seven day columns = 1 produces no notice."""
-    rows = [{"csv_row_number": 2, "service_id": "svc", **_ALL_ONE}]
+    rows = [{"service_id": "svc", **_ALL_ONE}]
     feed = {"calendar": make_calendar(rows)}
     assert validate_service_no_active_day(feed, CTX) == []
 
 
 def test_single_row_all_inactive_one_notice() -> None:
     """Single calendar row with all seven day columns = 0 produces exactly one notice."""
-    rows = [{"csv_row_number": 2, "service_id": "svc", **_ALL_ZERO}]
+    rows = [{"service_id": "svc", **_ALL_ZERO}]
     feed = {"calendar": make_calendar(rows)}
     notices = validate_service_no_active_day(feed, CTX)
 
