@@ -36,7 +36,7 @@ def validate_trip_usability(
                 code="unusable_trip",
                 severity=Severity.WARNING,
                 fields={
-                    "csv_row_number": row["csv_row_number"],
+                    "csv_row_number": row.get("csv_row_number"),
                     "trip_id": row["trip_id"],
                 },
             )
