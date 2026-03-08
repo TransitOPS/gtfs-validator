@@ -20,13 +20,13 @@ def make_stops(
     """Each row is (stop_id, stop_name, location_type)."""
     return pl.DataFrame(
         {
-            "csvRowNumber": list(range(row_start, row_start + len(rows))),
+            "csv_row_number": list(range(row_start, row_start + len(rows))),
             "stop_id": [r[0] for r in rows],
             "stop_name": [r[1] for r in rows],
             "location_type": [r[2] for r in rows],
         },
         schema={
-            "csvRowNumber": pl.Int64,
+            "csv_row_number": pl.Int64,
             "stop_id": pl.Utf8,
             "stop_name": pl.Utf8,
             "location_type": pl.Int64,
@@ -44,7 +44,7 @@ def make_stop_times(
     If include_location_group_id is False, the location_group_id column is omitted.
     """
     data: dict = {
-        "csvRowNumber": list(range(row_start, row_start + len(rows))),
+        "csv_row_number": list(range(row_start, row_start + len(rows))),
         "stop_id": [r[0] for r in rows],
     }
     if include_location_group_id:

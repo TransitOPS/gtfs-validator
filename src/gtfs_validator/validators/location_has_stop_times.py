@@ -59,7 +59,7 @@ def validate_location_has_stop_times(
                 code="stop_without_stop_time",
                 severity=Severity.WARNING,
                 fields={
-                    "csv_row_number": row["csvRowNumber"],
+                    "csv_row_number": row["csv_row_number"],
                     "stop_id": row["stop_id"],
                     "stop_name": row.get("stop_name", "") or "",
                 },
@@ -71,15 +71,15 @@ def validate_location_has_stop_times(
     )
     if not non_stops.is_empty() and not stop_times.is_empty() and "stop_id" in stop_times.columns:
         bad = non_stops.join(
-            stop_times.select("stop_id", "csvRowNumber").rename(
-                {"csvRowNumber": "stop_time_csv_row_number"}
+            stop_times.select("stop_id", "csv_row_number").rename(
+                {"csv_row_number": "stop_time_csv_row_number"}
             ),
             on="stop_id",
             how="inner",
         )
         if not bad.is_empty():
             first_bad = bad.group_by("stop_id").agg([
-                pl.col("csvRowNumber").first(),
+                pl.col("csv_row_number").first(),
                 pl.col("stop_name").first(),
                 pl.col("stop_time_csv_row_number").min(),
             ])
@@ -88,7 +88,7 @@ def validate_location_has_stop_times(
                     code="location_with_unexpected_stop_time",
                     severity=Severity.ERROR,
                     fields={
-                        "csv_row_number": row["csvRowNumber"],
+                        "csv_row_number": row["csv_row_number"],
                         "stop_id": row["stop_id"],
                         "stop_name": row["stop_name"],
                         "stop_time_csv_row_number": row["stop_time_csv_row_number"],
