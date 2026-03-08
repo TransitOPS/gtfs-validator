@@ -5,7 +5,7 @@
 1. ~~AgencyConsistencyValidator~~ ✅
 2. ~~AttributionWithoutRoleValidator~~ ✅
 3. ~~BidirectionalExitGateValidator~~ ✅
-4. BikesAllowanceValidator
+4. ~~BikesAllowanceValidator~~ ✅
 5. BlockTripsWithOverlappingStopTimesValidator
 6. BookingRulesEntityValidator
 7. ContinuousPickupDropOffValidator

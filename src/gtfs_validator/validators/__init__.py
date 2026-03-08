@@ -31,6 +31,7 @@ class ValidatorEntry:
 
 from gtfs_validator.validators.agency_consistency import validate_agency_consistency
 from gtfs_validator.validators.attribution import validate_attribution_without_role
+from gtfs_validator.validators.bikes_allowance import validate_bikes_allowance
 from gtfs_validator.validators.pathways import validate_bidirectional_exit_gate
 
 VALIDATOR_REGISTRY: list[ValidatorEntry] = [
@@ -48,5 +49,10 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
         name="bidirectional_exit_gate",
         fn=validate_bidirectional_exit_gate,
         requires=["pathways"],
+    ),
+    ValidatorEntry(
+        name="bikes_allowance",
+        fn=validate_bikes_allowance,
+        requires=["routes", "trips"],
     ),
 ]
