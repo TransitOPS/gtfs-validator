@@ -44,7 +44,7 @@
 40. ~~PathwayDanglingGenericNodeValidator~~ ✅
 41. ~~PathwayEndpointTypeValidator~~ ✅
 42. ~~PathwayLoopValidator~~ ✅
-43. PathwayReachableLocationValidator
+43. ~~PathwayReachableLocationValidator~~ ✅
 44. PathwayStopAccessValidator
 45. PickupBookingRuleIdValidator
 46. PickupDropOffTypeValidator
