@@ -116,6 +116,7 @@ from gtfs_validator.validators.trip_service_id_foreign_key_validator import (
     validate_trip_service_id_foreign_key,
 )
 from gtfs_validator.validators.route_color_contrast import validate_route_color_contrast
+from gtfs_validator.validators.route_name import validate_route_name
 from gtfs_validator.validators.trip_usage import validate_trip_usage
 
 VALIDATOR_REGISTRY: list[ValidatorEntry] = [
@@ -367,6 +368,11 @@ VALIDATOR_REGISTRY: list[ValidatorEntry] = [
     ValidatorEntry(
         name="route_color_contrast",
         fn=validate_route_color_contrast,
+        requires=["routes"],
+    ),
+    ValidatorEntry(
+        name="route_name",
+        fn=validate_route_name,
         requires=["routes"],
     ),
 ]
