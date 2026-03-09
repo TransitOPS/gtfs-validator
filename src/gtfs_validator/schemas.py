@@ -196,7 +196,6 @@ AGENCY = TableDefinition(
         _col("agency_phone", _PHONE),
         _col("agency_fare_url", _URL),
         _col("agency_email", _EMAIL),
-        _col("cemv_support", _ENUM),
     ],
 )
 
@@ -618,6 +617,29 @@ LOCATION_GROUP_STOPS = TableDefinition(
     ],
 )
 
+# GTFS extension tables (not in the core spec; used by some agencies).
+DIRECTIONS = TableDefinition(
+    filename="directions.txt",
+    requirement=_TO,
+    columns=[
+        _col("route_id", _ID, _R, pk=True),
+        _col("direction_id", _ENUM, _R, pk=True),
+        _col("direction", _TXT, _R),
+        _col("direction_destination", _TXT),
+    ],
+)
+
+ROUTE_STOPS = TableDefinition(
+    filename="route_stops.txt",
+    requirement=_TO,
+    columns=[
+        _col("route_id", _ID, _R, pk=True),
+        _col("direction_id", _ENUM, _R, pk=True),
+        _col("stop_id", _ID, _R, pk=True),
+        _col("route_stop_sort_order", _INT, _R, pk=True),
+    ],
+)
+
 
 # ---------------------------------------------------------------------------
 # Registry: filename -> TableDefinition
@@ -655,6 +677,8 @@ ALL_TABLES: list[TableDefinition] = [
     BOOKING_RULES,
     LOCATION_GROUPS,
     LOCATION_GROUP_STOPS,
+    DIRECTIONS,
+    ROUTE_STOPS,
 ]
 
 TABLE_BY_FILENAME: dict[str, TableDefinition] = {t.filename: t for t in ALL_TABLES}
