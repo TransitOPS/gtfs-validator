@@ -183,6 +183,32 @@ In the output directory, the reports will be created as described [here](#visual
 
 Have a suggestion for a new rule? Open [an issue](https://github.com/MobilityData/gtfs-validator/issues/new/choose). You can see the complete process for adding new rules on the ["Adding new rules"](/docs/NEW_RULES.md) page.
 
+# Python migration development (in progress)
+The repository also contains an in-progress Python implementation under `src/` and `tests/`.
+
+### Setup
+From the repository root:
+
+```bash
+make setup
+```
+
+This command installs `uv` if needed and runs `uv sync` to install Python dependencies.
+
+### Run Python tests
+
+```bash
+make test
+```
+
+Useful alternatives:
+
+```bash
+make test-q
+uv run pytest tests/test_load_validators.py -k required
+make check
+```
+
 # Previous Releases, Snapshot Builds, and Documentation
 * If you'd like to run the bleeding-edge pre-release Snapshot of the application, see the [access instructions](/docs/DOWNLOAD_SNAPSHOT_JAR.md).
 * If you are looking for older releases, see the [Releases page](https://github.com/MobilityData/gtfs-validator/releases).

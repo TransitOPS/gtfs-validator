@@ -107,3 +107,11 @@ web/service/bin/
 /web/service/execution_result.json
 
 RULES.md
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+.pytest_cache/
