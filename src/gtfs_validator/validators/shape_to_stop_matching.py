@@ -8,6 +8,7 @@ matching is consistent.
 from __future__ import annotations
 
 from collections import defaultdict
+from dataclasses import dataclass
 from typing import Optional
 
 import polars as pl
@@ -34,9 +35,16 @@ from gtfs_validator.validators.shape_to_stop_matching_util import (
 _REQUIRED_TABLES = ["stops", "trips", "routes", "stop_times", "shapes"]
 
 
+@dataclass(frozen=True)
+class TripInfo:
+    trip_id: str
+    route_id: str
+    csv_row_number: int
+
+
 def _problems_to_notices(
     problems: list[Problem],
-    trip: dict,
+    trip: TripInfo,
     shape_id: str,
     stops_by_id: dict,
     reported_stop_ids: set[str],
@@ -76,9 +84,9 @@ def _problems_to_notices(
                     code=code,
                     severity=Severity.WARNING,
                     fields={
-                        "trip_csv_row_number": trip["csv_row_number"],
+                        "trip_csv_row_number": trip.csv_row_number,
                         "shape_id": shape_id,
-                        "trip_id": trip["trip_id"],
+                        "trip_id": trip.trip_id,
                         "stop_time_csv_row_number": stop_time_row["csv_row_number"],
                         "stop_id": stop_id,
                         "stop_name": stop_name,
@@ -106,9 +114,9 @@ def _problems_to_notices(
                     code="stop_has_too_many_matches_for_shape",
                     severity=Severity.WARNING,
                     fields={
-                        "trip_csv_row_number": trip["csv_row_number"],
+                        "trip_csv_row_number": trip.csv_row_number,
                         "shape_id": shape_id,
-                        "trip_id": trip["trip_id"],
+                        "trip_id": trip.trip_id,
                         "stop_time_csv_row_number": stop_time_row["csv_row_number"],
                         "stop_id": stop_id,
                         "stop_name": stop_name,
@@ -142,9 +150,9 @@ def _problems_to_notices(
                     code="stops_match_shape_out_of_order",
                     severity=Severity.WARNING,
                     fields={
-                        "trip_csv_row_number": trip["csv_row_number"],
+                        "trip_csv_row_number": trip.csv_row_number,
                         "shape_id": shape_id,
-                        "trip_id": trip["trip_id"],
+                        "trip_id": trip.trip_id,
                         "stop_time_csv_row_number1": stop_time_row1["csv_row_number"],
                         "stop_id1": stop_id1,
                         "stop_name1": stop_name1,
@@ -199,20 +207,25 @@ def validate_shape_to_stop_matching(
         for row in stops_df.select(available_stops_cols).iter_rows(named=True)
     }
 
-    routes_by_id: dict[str, dict] = {
-        row["route_id"]: row
+    route_type_by_id: dict[str, int] = {
+        row["route_id"]: row["route_type"]
         for row in routes_df.select(["route_id", "route_type"]).iter_rows(named=True)
     }
 
     # Group trips by shape_id first so downstream row processing can filter.
     trip_cols = ["trip_id", "route_id", "shape_id", "csv_row_number"]
-    trips_by_shape_id: dict[str, list[dict]] = defaultdict(list)
+    trips_by_shape_id: dict[str, list[TripInfo]] = defaultdict(list)
     relevant_trip_ids: set[str] = set()
     for row in trips_df.select(trip_cols).iter_rows(named=True):
         shape_id = row.get("shape_id")
         if shape_id:
-            trips_by_shape_id[shape_id].append(row)
-            relevant_trip_ids.add(row["trip_id"])
+            trip = TripInfo(
+                trip_id=row["trip_id"],
+                route_id=row["route_id"],
+                csv_row_number=row["csv_row_number"],
+            )
+            trips_by_shape_id[shape_id].append(trip)
+            relevant_trip_ids.add(trip.trip_id)
 
     # Group stop_times by trip_id
     st_cols = ["trip_id", "stop_id", "stop_sequence", "csv_row_number"]
@@ -265,7 +278,7 @@ def validate_shape_to_stop_matching(
 
         num_segments = max(0, len(shape_points) - 1)
         max_trip_stops = max(
-            (len(st_by_trip_id.get(trip["trip_id"], [])) for trip in trips_for_shape),
+            (len(st_by_trip_id.get(trip.trip_id, [])) for trip in trips_for_shape),
             default=0,
         )
         should_build_shape_arrays = (
@@ -285,8 +298,7 @@ def validate_shape_to_stop_matching(
         need_trip_dedup = len(trips_for_shape) > 1
 
         for trip in trips_for_shape:
-            trip_id = trip["trip_id"]
-            stop_times = st_by_trip_id.get(trip_id, [])
+            stop_times = st_by_trip_id.get(trip.trip_id, [])
             if not stop_times:
                 continue
 
@@ -317,11 +329,11 @@ def validate_shape_to_stop_matching(
                         continue
                     state.add(cur_hash)
 
-            route = routes_by_id.get(trip["route_id"])
-            if route is None:
+            route_type = route_type_by_id.get(trip.route_id)
+            if route_type is None:
                 continue
 
-            is_large_route = route["route_type"] == RAIL_ROUTE_TYPE
+            is_large_route = route_type == RAIL_ROUTE_TYPE
             stop_points = build_stop_points(stop_times, stops_by_id, is_large_route, resolved_latlng)
 
             # Geo-distance matching (always)

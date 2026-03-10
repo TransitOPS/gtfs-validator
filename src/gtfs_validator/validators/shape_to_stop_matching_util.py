@@ -683,7 +683,9 @@ def find_potential_matches(
 
     in_close_run = False
     run_best_dist = math.inf
-    run_best_match: Optional[CandidateMatch] = None
+    run_best_geo_dist = 0.0
+    run_best_lat = 0.0
+    run_best_lon = 0.0
     matches: list[CandidateMatch] = []
 
     seg_ids = (
@@ -694,11 +696,16 @@ def find_potential_matches(
     prev_seg_id = -1
     for i in seg_ids:
         if in_close_run and prev_seg_id >= 0 and i != prev_seg_id + 1:
-            assert run_best_match is not None
-            matches.append(run_best_match)
+            matches.append(
+                CandidateMatch(
+                    geo_distance_to_shape=run_best_dist,
+                    shape_geo_distance=run_best_geo_dist,
+                    lat=run_best_lat,
+                    lon=run_best_lon,
+                )
+            )
             in_close_run = False
             run_best_dist = math.inf
-            run_best_match = None
 
         a = shape_points[i]
         b = shape_points[i + 1]
@@ -726,11 +733,16 @@ def find_potential_matches(
             or stop.lon > max_lon + lon_slack
         ):
             if in_close_run:
-                assert run_best_match is not None
-                matches.append(run_best_match)
+                matches.append(
+                    CandidateMatch(
+                        geo_distance_to_shape=run_best_dist,
+                        shape_geo_distance=run_best_geo_dist,
+                        lat=run_best_lat,
+                        lon=run_best_lon,
+                    )
+                )
                 in_close_run = False
                 run_best_dist = math.inf
-                run_best_match = None
             continue
 
         av = a.uv
@@ -741,30 +753,40 @@ def find_potential_matches(
         if dist <= max_dist:
             frac = _seg_fraction(p, av, bv)
             matched_geo_dist = a.geo_distance + frac * (b.geo_distance - a.geo_distance)
-            candidate = CandidateMatch(
-                geo_distance_to_shape=dist,
-                shape_geo_distance=matched_geo_dist,
-                lat=closest_lat,
-                lon=closest_lon,
-            )
             if not in_close_run:
                 in_close_run = True
                 run_best_dist = dist
-                run_best_match = candidate
+                run_best_geo_dist = matched_geo_dist
+                run_best_lat = closest_lat
+                run_best_lon = closest_lon
             elif dist < run_best_dist:
                 run_best_dist = dist
-                run_best_match = candidate
+                run_best_geo_dist = matched_geo_dist
+                run_best_lat = closest_lat
+                run_best_lon = closest_lon
         else:
             if in_close_run:
-                assert run_best_match is not None
-                matches.append(run_best_match)
+                matches.append(
+                    CandidateMatch(
+                        geo_distance_to_shape=run_best_dist,
+                        shape_geo_distance=run_best_geo_dist,
+                        lat=run_best_lat,
+                        lon=run_best_lon,
+                    )
+                )
                 in_close_run = False
                 run_best_dist = math.inf
-                run_best_match = None
         prev_seg_id = i
 
-    if in_close_run and run_best_match is not None:
-        matches.append(run_best_match)
+    if in_close_run:
+        matches.append(
+            CandidateMatch(
+                geo_distance_to_shape=run_best_dist,
+                shape_geo_distance=run_best_geo_dist,
+                lat=run_best_lat,
+                lon=run_best_lon,
+            )
+        )
 
     return matches
 
@@ -855,7 +877,9 @@ def find_closest_on_shape(
     # --- Scalar path (inlined for zero overhead) ---
     p = latlng_to_unit_vector(stop.lat, stop.lon)
     best_dist = math.inf
-    best_match: Optional[CandidateMatch] = None
+    best_geo_dist = 0.0
+    best_lat = 0.0
+    best_lon = 0.0
 
     for i in range(len(shape_points) - 1):
         a = shape_points[i]
@@ -868,15 +892,16 @@ def find_closest_on_shape(
             best_dist = dist
             frac = _seg_fraction(p, av, bv)
             matched_geo_dist = a.geo_distance + frac * (b.geo_distance - a.geo_distance)
-            best_match = CandidateMatch(
-                geo_distance_to_shape=dist,
-                shape_geo_distance=matched_geo_dist,
-                lat=closest_lat,
-                lon=closest_lon,
-            )
+            best_geo_dist = matched_geo_dist
+            best_lat = closest_lat
+            best_lon = closest_lon
 
-    assert best_match is not None
-    return best_match
+    return CandidateMatch(
+        geo_distance_to_shape=best_dist,
+        shape_geo_distance=best_geo_dist,
+        lat=best_lat,
+        lon=best_lon,
+    )
 
 
 def _find_closest_on_shape_vec(
