@@ -227,6 +227,9 @@ def validate_shape_to_stop_matching(
             trips_by_shape_id[shape_id].append(trip)
             relevant_trip_ids.add(trip.trip_id)
 
+    if not trips_by_shape_id:
+        return []
+
     # Group stop_times by trip_id
     st_cols = ["trip_id", "stop_id", "stop_sequence", "csv_row_number"]
     optional_st = ["shape_dist_traveled"]

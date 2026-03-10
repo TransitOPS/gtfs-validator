@@ -555,11 +555,12 @@ def build_stop_points(
     n = len(stop_times)
     result: list[StopPoint] = []
     for i, st in enumerate(stop_times):
+        stop_id = st["stop_id"]
         if resolved_latlng is not None:
-            ll = resolved_latlng.get(st["stop_id"])
+            ll = resolved_latlng.get(stop_id)
             lat, lon = (ll[0], ll[1]) if ll is not None else (0.0, 0.0)
         else:
-            lat, lon = resolve_stop_location(st["stop_id"], stops_by_id)
+            lat, lon = resolve_stop_location(stop_id, stops_by_id)
         user_dist = st.get("shape_dist_traveled") or 0.0
         is_large = is_large_route and (i == 0 or i == n - 1)
         result.append(
