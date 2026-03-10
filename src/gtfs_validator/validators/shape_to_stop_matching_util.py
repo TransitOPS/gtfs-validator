@@ -1103,13 +1103,6 @@ def match_using_geo_distance(
     candidates_per_stop: list[list[CandidateMatch]] = []
     # Maps index in candidates_per_stop -> index in stop_points (skips too-far stops)
     candidate_stop_idx: list[int] = []
-    num_segments = max(0, len(shape_points) - 1)
-    use_vectorized = (
-        shape_arrays is not None
-        and num_segments >= _VEC_MIN_SEGMENTS
-        and (num_segments * len(stop_points)) >= _VEC_MIN_WORK_ITEMS
-    )
-
     for orig_idx, stop in enumerate(stop_points):
         max_dist = settings.max_distance_meters
         if stop.is_large_station:
@@ -1125,7 +1118,7 @@ def match_using_geo_distance(
                 stop,
                 shape_points,
                 max_dist,
-                shape_arrays if use_vectorized else None,
+                shape_arrays,
                 spatial_index,
             )
             if candidates_cache is not None and candidates_key is not None:
@@ -1155,7 +1148,7 @@ def match_using_geo_distance(
                 closest = find_closest_on_shape(
                     stop,
                     shape_points,
-                    shape_arrays if use_vectorized else None,
+                    shape_arrays,
                 )
                 if closest_cache is not None and closest_key is not None:
                     closest_cache[closest_key] = closest
@@ -1209,13 +1202,6 @@ def match_using_user_distance(
     problems: list[Problem] = []
     candidates_per_stop: list[list[CandidateMatch]] = []
     search_from = 0
-    num_segments = max(0, len(shape_points) - 1)
-    use_vectorized = (
-        shape_arrays is not None
-        and num_segments >= _VEC_MIN_SEGMENTS
-        and (num_segments * len(stop_points)) >= _VEC_MIN_WORK_ITEMS
-    )
-
     for stop in stop_points:
         if stop.user_distance > 0.0:
             interp_match, search_from = interpolate_user_distance(
@@ -1246,7 +1232,7 @@ def match_using_user_distance(
                     stop,
                     shape_points,
                     max_dist,
-                    shape_arrays if use_vectorized else None,
+                    shape_arrays,
                     spatial_index,
                 )
                 if candidates_cache is not None and candidates_key is not None:
