@@ -234,6 +234,48 @@ def _prepare_stop_lookups(
 # ---------------------------------------------------------------------------
 
 
+def _build_consecutive_notice(
+    row: dict,
+    stop_name_by_stop_id: Mapping[str, str | None],
+) -> Notice:
+    """Build a consecutive-stop speed notice from a Polars row dict."""
+    return Notice(
+        code="fast_travel_between_consecutive_stops",
+        severity=Severity.WARNING,
+        fields={
+            "trip_csv_row_number": int(row["trip_csv_row_number"]),
+            "trip_id": str(row["trip_id"]),
+            "route_id": str(row["route_id"]),
+            "speed_kph": round(float(row["speed_kph"]), 2),
+            "distance_km": round(float(row["consec_distance_km"]), 4),
+            "csv_row_number1": row["prev_csv_row_number"],
+            "stop_sequence1": row["prev_stop_sequence"],
+            "stop_id1": row["prev_stop_id"],
+            "stop_name1": stop_name_by_stop_id.get(row["prev_stop_id"]) or "",
+            "departure_time1": secs_to_hhmmss(int(row["prev_departure_time"])),
+            "csv_row_number2": row["csv_row_number"],
+            "stop_sequence2": row["stop_sequence"],
+            "stop_id2": row["stop_id"],
+            "stop_name2": stop_name_by_stop_id.get(row["stop_id"]) or "",
+            "arrival_time2": secs_to_hhmmss(int(row["arrival_time"])),
+        },
+    )
+
+
+def _haversine_km_expr(
+    lat1: str, lon1: str, lat2: str, lon2: str,
+) -> pl.Expr:
+    """Polars expression: haversine distance in km between two lat/lon column pairs."""
+    R = 6371.0
+    dlat = (pl.col(lat2) - pl.col(lat1)).radians() / 2
+    dlon = (pl.col(lon2) - pl.col(lon1)).radians() / 2
+    a = (
+        dlat.sin() ** 2
+        + pl.col(lat1).radians().cos() * pl.col(lat2).radians().cos() * dlon.sin() ** 2
+    )
+    return R * 2 * a.sqrt().arcsin()
+
+
 def validate_stop_time_travel_speed(
     feed: dict[str, pl.DataFrame],
     ctx: ValidationContext,
@@ -279,117 +321,148 @@ def validate_stop_time_travel_speed(
     if time_cols_to_parse:
         joined = joined.with_columns([_parse_gtfs_time_expr(c) for c in time_cols_to_parse])
 
-    trip_ids = joined["trip_id"].to_list()
-    route_ids = joined["route_id"].to_list()
-    route_types = joined["route_type"].to_list()
-    trip_csv_row_numbers = joined["trip_csv_row_number"].to_list()
-    stop_ids = joined["stop_id"].to_list()
-    stop_sequences = joined["stop_sequence"].to_list()
-    csv_row_numbers = joined["csv_row_number"].to_list()
-    arrival_times = joined["arrival_time"].to_list()
-    departure_times = joined["departure_time"].to_list()
-
-    notices: list[Notice] = []
-    total_rows = len(trip_ids)
-    trip_start = 0
-
-    while trip_start < total_rows:
-        trip_end = trip_start + 1
-        trip_id = trip_ids[trip_start]
-        while trip_end < total_rows and trip_ids[trip_end] == trip_id:
-            trip_end += 1
-
-        if trip_end - trip_start < 2:
-            trip_start = trip_end
-            continue
-
-        route_type = route_types[trip_start]
-        if route_type is None:
-            trip_start = trip_end
-            continue
-
-        max_speed = get_max_speed_kph(int(route_type))
-        route_id = route_ids[trip_start]
-        trip_csv_row_number = trip_csv_row_numbers[trip_start]
-
-        # Precompute latlngs for all stops in this trip.
-        trip_len = trip_end - trip_start
-        trip_latlngs: list[tuple[float, float] | None] = [
-            resolved_latlng_by_stop_id.get(stop_ids[trip_start + i])
-            for i in range(trip_len)
-        ]
-
-        # Vectorized prefix-sum distances (NaN segments treated as 0 km).
-        lats_arr = np.array(
-            [ll[0] if ll is not None else np.nan for ll in trip_latlngs]
+    # --- Add resolved lat/lon via join ---
+    latlng_rows = [
+        {"stop_id": sid, "_rlat": ll[0], "_rlon": ll[1]}
+        for sid, ll in resolved_latlng_by_stop_id.items()
+        if ll is not None
+    ]
+    if latlng_rows:
+        latlng_df = pl.DataFrame(latlng_rows).with_columns(
+            pl.col("_rlat").cast(pl.Float64), pl.col("_rlon").cast(pl.Float64),
         )
-        lons_arr = np.array(
-            [ll[1] if ll is not None else np.nan for ll in trip_latlngs]
+        joined = joined.join(latlng_df, on="stop_id", how="left")
+    else:
+        joined = joined.with_columns(
+            pl.lit(None, dtype=pl.Float64).alias("_rlat"),
+            pl.lit(None, dtype=pl.Float64).alias("_rlon"),
         )
-        seg_dists_raw = _haversine_km_vectorized(
-            lats_arr[:-1], lons_arr[:-1], lats_arr[1:], lons_arr[1:]
-        )
-        seg_dists_safe = np.where(np.isnan(seg_dists_raw), 0.0, seg_dists_raw)
-        prefix_distances_km = np.concatenate([[0.0], np.cumsum(seg_dists_safe)])
-        total_trip_distance_km = float(prefix_distances_km[-1])
 
-        # Consecutive-stop check: iterate over consecutive valid-latlng pairs.
-        # Precompute distances between consecutive valid stops using NumPy.
-        valid_rel_indices = [i for i in range(trip_len) if trip_latlngs[i] is not None]
-        if len(valid_rel_indices) >= 2:
-            v_lats = lats_arr[valid_rel_indices]
-            v_lons = lons_arr[valid_rel_indices]
-            consec_dists = _haversine_km_vectorized(
-                v_lats[:-1], v_lons[:-1], v_lats[1:], v_lons[1:]
-            )
-            for j in range(len(valid_rel_indices) - 1):
-                start_rel = valid_rel_indices[j]
-                end_rel = valid_rel_indices[j + 1]
-                start_idx = trip_start + start_rel
-                end_idx = trip_start + end_rel
+    # --- Add max speed per route_type ---
+    speed_rows = [{"route_type": k, "max_speed_kph": v} for k, v in MAX_SPEED_KPH.items()]
+    speed_df = pl.DataFrame(speed_rows).with_columns(
+        pl.col("route_type").cast(joined["route_type"].dtype),
+    )
+    joined = joined.join(speed_df, on="route_type", how="left").with_columns(
+        pl.col("max_speed_kph").fill_null(DEFAULT_MAX_SPEED_KPH),
+    )
 
-                departure_secs = departure_times[start_idx]
-                arrival_secs = arrival_times[end_idx]
-                if departure_secs is None or arrival_secs is None:
-                    continue
+    # ===================================================================
+    # Consecutive-stop check (Polars-native)
+    # ===================================================================
+    # Filter to rows with resolved coordinates, then pair adjacent valid
+    # stops within each trip via shift().
+    valid = joined.filter(pl.col("_rlat").is_not_null())
+    valid = valid.with_columns([
+        pl.col("_rlat").shift(1).over("trip_id").alias("prev_lat"),
+        pl.col("_rlon").shift(1).over("trip_id").alias("prev_lon"),
+        pl.col("departure_time").shift(1).over("trip_id").alias("prev_departure_time"),
+        pl.col("csv_row_number").shift(1).over("trip_id").alias("prev_csv_row_number"),
+        pl.col("stop_sequence").shift(1).over("trip_id").alias("prev_stop_sequence"),
+        pl.col("stop_id").shift(1).over("trip_id").alias("prev_stop_id"),
+    ])
+    # Drop first row of each trip (no predecessor).
+    valid = valid.filter(pl.col("prev_lat").is_not_null())
 
-                distance_km = float(consec_dists[j])
-                speed = get_speed_kph(distance_km, departure_secs, arrival_secs)
-                if speed > max_speed:
-                    notices.append(
-                        Notice(
-                            code="fast_travel_between_consecutive_stops",
-                            severity=Severity.WARNING,
-                            fields=_build_notice_fields(
-                                int(trip_csv_row_number),
-                                str(trip_id),
-                                str(route_id),
-                                speed,
-                                distance_km,
-                                start_idx,
-                                end_idx,
-                                csv_row_numbers,
-                                stop_sequences,
-                                stop_ids,
-                                departure_times,
-                                arrival_times,
-                                stop_name_by_stop_id,
-                            ),
-                        )
-                    )
+    # Haversine distance and speed as Polars expressions.
+    dist_km_expr = _haversine_km_expr("prev_lat", "prev_lon", "_rlat", "_rlon")
 
-        # Cheap skip: no far-stop pair can exceed the distance threshold.
-        if total_trip_distance_km > FAR_STOP_DISTANCE_THRESHOLD_KM:
+    raw_time = pl.col("arrival_time") - pl.col("prev_departure_time")
+    is_minute = (pl.col("arrival_time") % 60 == 0) & (pl.col("prev_departure_time") % 60 == 0)
+    effective_time = (
+        pl.when(raw_time <= 0).then(pl.lit(MIN_EFFECTIVE_TIME_SECS))
+        .when(is_minute).then(raw_time + MIN_EFFECTIVE_TIME_SECS)
+        .otherwise(raw_time)
+    )
+    speed_expr = dist_km_expr * NUM_SECONDS_PER_HOUR / effective_time
+
+    valid = valid.with_columns([
+        dist_km_expr.alias("consec_distance_km"),
+        speed_expr.alias("speed_kph"),
+    ])
+
+    violations = valid.filter(
+        pl.col("speed_kph").is_not_null()
+        & pl.col("arrival_time").is_not_null()
+        & pl.col("prev_departure_time").is_not_null()
+        & (pl.col("speed_kph") > pl.col("max_speed_kph"))
+    )
+
+    notices: list[Notice] = [
+        _build_consecutive_notice(row, stop_name_by_stop_id)
+        for row in violations.to_dicts()
+    ]
+
+    # ===================================================================
+    # Far-stop check (only for qualifying trips with total distance > 10 km)
+    # ===================================================================
+    # Compute segment distances for ALL rows (NaN coords → 0 km).
+    joined = joined.with_columns([
+        pl.col("_rlat").shift(1).over("trip_id").alias("_seg_prev_lat"),
+        pl.col("_rlon").shift(1).over("trip_id").alias("_seg_prev_lon"),
+    ])
+    seg_dist_expr = _haversine_km_expr("_seg_prev_lat", "_seg_prev_lon", "_rlat", "_rlon")
+    joined = joined.with_columns(
+        seg_dist_expr.fill_null(0.0).alias("_seg_dist_km"),
+    )
+    joined = joined.with_columns(
+        pl.col("_seg_dist_km").cum_sum().over("trip_id").alias("_prefix_dist_km"),
+    )
+
+    # Find trips exceeding the distance threshold.
+    trip_totals = joined.group_by("trip_id").agg(
+        pl.col("_seg_dist_km").sum().alias("_total_dist_km"),
+    ).filter(pl.col("_total_dist_km") > FAR_STOP_DISTANCE_THRESHOLD_KM)
+
+    if not trip_totals.is_empty():
+        qualifying_ids = set(trip_totals["trip_id"].to_list())
+        far_df = joined.filter(pl.col("trip_id").is_in(list(qualifying_ids)))
+
+        # Materialize only the columns needed for far-stop iteration.
+        far_trip_ids = far_df["trip_id"].to_list()
+        far_stop_ids = far_df["stop_id"].to_list()
+        far_csv_rows = far_df["csv_row_number"].to_list()
+        far_stop_seqs = far_df["stop_sequence"].to_list()
+        far_arrival = far_df["arrival_time"].to_list()
+        far_departure = far_df["departure_time"].to_list()
+        far_route_ids = far_df["route_id"].to_list()
+        far_route_types = far_df["route_type"].to_list()
+        far_trip_csv_rows = far_df["trip_csv_row_number"].to_list()
+        far_max_speeds = far_df["max_speed_kph"].to_list()
+        far_prefix = far_df["_prefix_dist_km"].to_list()
+
+        total_far = len(far_trip_ids)
+        trip_start = 0
+
+        while trip_start < total_far:
+            trip_end = trip_start + 1
+            trip_id = far_trip_ids[trip_start]
+            while trip_end < total_far and far_trip_ids[trip_end] == trip_id:
+                trip_end += 1
+
+            trip_len = trip_end - trip_start
+            if trip_len < 2:
+                trip_start = trip_end
+                continue
+
+            max_speed = float(far_max_speeds[trip_start])
+            prefix_distances_km = [far_prefix[trip_start + i] for i in range(trip_len)]
+            total_trip_distance_km = prefix_distances_km[-1]
+
+            if total_trip_distance_km <= FAR_STOP_DISTANCE_THRESHOLD_KM:
+                trip_start = trip_end
+                continue
+
             far_notice: Notice | None = None
             abort_far_check = False
 
             for end_rel_idx in range(trip_len):
                 end_idx = trip_start + end_rel_idx
-                arrival_secs = arrival_times[end_idx]
+                arrival_secs = far_arrival[end_idx]
                 if arrival_secs is None:
                     continue
 
-                end_stop_id = stop_ids[end_idx]
+                end_stop_id = far_stop_ids[end_idx]
                 if end_stop_id not in existing_stop_ids:
                     abort_far_check = True
                     break
@@ -407,7 +480,7 @@ def validate_stop_time_travel_speed(
 
                 for start_rel_idx in range(farthest_near_start_idx, -1, -1):
                     start_idx = trip_start + start_rel_idx
-                    departure_secs = departure_times[start_idx]
+                    departure_secs = far_departure[start_idx]
                     if departure_secs is None:
                         continue
 
@@ -427,7 +500,7 @@ def validate_stop_time_travel_speed(
                     if speed <= max_speed:
                         continue
 
-                    start_stop_id = stop_ids[start_idx]
+                    start_stop_id = far_stop_ids[start_idx]
                     if start_stop_id not in existing_stop_ids:
                         abort_far_check = True
                         break
@@ -436,18 +509,18 @@ def validate_stop_time_travel_speed(
                         code="fast_travel_between_far_stops",
                         severity=Severity.WARNING,
                         fields=_build_notice_fields(
-                            int(trip_csv_row_number),
+                            int(far_trip_csv_rows[trip_start]),
                             str(trip_id),
-                            str(route_id),
+                            str(far_route_ids[trip_start]),
                             speed,
                             distance_to_end,
                             start_idx,
                             end_idx,
-                            csv_row_numbers,
-                            stop_sequences,
-                            stop_ids,
-                            departure_times,
-                            arrival_times,
+                            far_csv_rows,
+                            far_stop_seqs,
+                            far_stop_ids,
+                            far_departure,
+                            far_arrival,
                             stop_name_by_stop_id,
                         ),
                     )
@@ -459,6 +532,6 @@ def validate_stop_time_travel_speed(
             if far_notice is not None and not abort_far_check:
                 notices.append(far_notice)
 
-        trip_start = trip_end
+            trip_start = trip_end
 
     return notices
